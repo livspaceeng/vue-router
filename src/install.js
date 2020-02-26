@@ -1,5 +1,6 @@
 import View from './components/view'
 import Link from './components/link'
+import Mfe from './components/mfe'
 
 export let _Vue
 
@@ -45,6 +46,7 @@ export function install (Vue) {
 
   Vue.component('RouterView', View)
   Vue.component('RouterLink', Link)
+  Vue.component('RouterMfe', Mfe)
 
   const strats = Vue.config.optionMergeStrategies
   // use the same hook merging strategy for route hooks

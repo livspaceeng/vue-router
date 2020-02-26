@@ -88,6 +88,8 @@ export interface PathToRegexpOptions {
 export interface RouteConfig {
   path: string
   name?: string
+  mfe?: MFE
+  mfes?: Dictionary<MFE>
   component?: Component
   components?: Dictionary<Component>
   redirect?: RedirectOption
@@ -100,10 +102,15 @@ export interface RouteConfig {
   pathToRegexpOptions?: PathToRegexpOptions
 }
 
+export interface MFE {
+  boot: (el: HTMLElement) => Promise<any>;
+}
+
 export interface RouteRecord {
   path: string
   regex: RegExp
   components: Dictionary<Component>
+  mfes: Dictionary<MFE>
   instances: Dictionary<Vue>
   name?: string
   parent?: RouteRecord

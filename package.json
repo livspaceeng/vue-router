@@ -1,5 +1,5 @@
 {
-  "name": "vue-router",
+  "name": "@canvas/vue-router",
   "version": "3.1.5",
   "description": "Official router for Vue.js 2",
   "author": "Evan You",

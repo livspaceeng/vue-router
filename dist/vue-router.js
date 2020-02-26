@@ -7,7 +7,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
   typeof define === 'function' && define.amd ? define(factory) :
   (global = global || self, global.VueRouter = factory());
-}(this, function () { 'use strict';
+}(this, (function () { 'use strict';
 
   /*  */
 
@@ -610,7 +610,7 @@
    * @return {!function(Object=, Object=)}
    */
   function compile (str, options) {
-    return tokensToFunction(parse(str, options))
+    return tokensToFunction(parse(str, options), options)
   }
 
   /**
@@ -640,14 +640,14 @@
   /**
    * Expose a method for transforming tokens into the path function.
    */
-  function tokensToFunction (tokens) {
+  function tokensToFunction (tokens, options) {
     // Compile all the tokens into regexps.
     var matches = new Array(tokens.length);
 
     // Compile all the patterns before compilation.
     for (var i = 0; i < tokens.length; i++) {
       if (typeof tokens[i] === 'object') {
-        matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$');
+        matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$', flags(options));
       }
     }
 
@@ -760,7 +760,7 @@
    * @return {string}
    */
   function flags (options) {
-    return options.sensitive ? '' : 'i'
+    return options && options.sensitive ? '' : 'i'
   }
 
   /**
@@ -948,7 +948,8 @@
         (regexpCompileCache[path] = pathToRegexp_1.compile(path));
 
       // Fix #2505 resolving asterisk routes { name: 'not-found', params: { pathMatch: '/not-found' }}
-      if (params.pathMatch) { params[0] = params.pathMatch; }
+      // and fix #3106 so that you can work with location descriptor object having params.pathMatch equal to empty string
+      if (typeof params.pathMatch === 'string') { params[0] = params.pathMatch; }
 
       return filler(params, { pretty: true })
     } catch (e) {
@@ -1215,6 +1216,40 @@
     }
   }
 
+  var Mfe = {
+    name: 'RouterMfe',
+    props: {
+      name: {
+        type: String,
+        default: 'default'
+      }
+    },
+    render: function render (h) {
+      // used by devtools to display a router-view badge
+      // data.routerView = true
+      // const h = parent.$createElement
+      return h('div', { ref: 'host' })
+    },
+
+    mounted: function mounted () {
+      var this$1 = this;
+
+      var route = this.$parent.$route;
+      debugger
+      var depth = 0;
+      var matched = route.matched[depth];
+      if (matched && matched.mfes) {
+        var name = Object.keys(matched.mfes)[0];
+        var mfe = matched && matched.mfes[name];
+        // const subroutes = this.mfe.router;
+        // this.router.addRoutes(this.currentroute, subroutes);
+        mfe.boot(this.$refs.host).then(function () {
+          this$1.$emit('bootfinished');
+        });
+      }
+    }
+  };
+
   var _Vue;
 
   function install (Vue) {
@@ -1259,6 +1294,7 @@
 
     Vue.component('RouterView', View);
     Vue.component('RouterLink', Link);
+    Vue.component('RouterMfe', Mfe);
 
     var strats = Vue.config.optionMergeStrategies;
     // use the same hook merging strategy for route hooks
@@ -1348,6 +1384,7 @@
       path: normalizedPath,
       regex: compileRouteRegex(normalizedPath, pathToRegexpOptions),
       components: route.components || { default: route.component },
+      mfes: route.mfes || { default: route.mfe },
       instances: {},
       name: name,
       parent: parent,
@@ -2919,4 +2956,4 @@
 
   return VueRouter;
 
-}));
+})));

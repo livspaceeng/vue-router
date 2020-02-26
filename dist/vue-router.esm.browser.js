@@ -590,7 +590,7 @@ function parse (str, options) {
  * @return {!function(Object=, Object=)}
  */
 function compile (str, options) {
-  return tokensToFunction(parse(str, options))
+  return tokensToFunction(parse(str, options), options)
 }
 
 /**
@@ -620,14 +620,14 @@ function encodeAsterisk (str) {
 /**
  * Expose a method for transforming tokens into the path function.
  */
-function tokensToFunction (tokens) {
+function tokensToFunction (tokens, options) {
   // Compile all the tokens into regexps.
   var matches = new Array(tokens.length);
 
   // Compile all the patterns before compilation.
   for (var i = 0; i < tokens.length; i++) {
     if (typeof tokens[i] === 'object') {
-      matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$');
+      matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$', flags(options));
     }
   }
 
@@ -740,7 +740,7 @@ function attachKeys (re, keys) {
  * @return {string}
  */
 function flags (options) {
-  return options.sensitive ? '' : 'i'
+  return options && options.sensitive ? '' : 'i'
 }
 
 /**
@@ -928,7 +928,8 @@ function fillParams (
       (regexpCompileCache[path] = pathToRegexp_1.compile(path));
 
     // Fix #2505 resolving asterisk routes { name: 'not-found', params: { pathMatch: '/not-found' }}
-    if (params.pathMatch) params[0] = params.pathMatch;
+    // and fix #3106 so that you can work with location descriptor object having params.pathMatch equal to empty string
+    if (typeof params.pathMatch === 'string') params[0] = params.pathMatch;
 
     return filler(params, { pretty: true })
   } catch (e) {
@@ -1192,6 +1193,38 @@ function findAnchor (children) {
   }
 }
 
+var Mfe = {
+  name: 'RouterMfe',
+  props: {
+    name: {
+      type: String,
+      default: 'default'
+    }
+  },
+  render (h) {
+    // used by devtools to display a router-view badge
+    // data.routerView = true
+    // const h = parent.$createElement
+    return h('div', { ref: 'host' })
+  },
+
+  mounted () {
+    const route = this.$parent.$route;
+    debugger
+    const depth = 0;
+    const matched = route.matched[depth];
+    if (matched && matched.mfes) {
+      const name = Object.keys(matched.mfes)[0];
+      const mfe = matched && matched.mfes[name];
+      // const subroutes = this.mfe.router;
+      // this.router.addRoutes(this.currentroute, subroutes);
+      mfe.boot(this.$refs.host).then(() => {
+        this.$emit('bootfinished');
+      });
+    }
+  }
+};
+
 let _Vue;
 
 function install (Vue) {
@@ -1236,6 +1269,7 @@ function install (Vue) {
 
   Vue.component('RouterView', View);
   Vue.component('RouterLink', Link);
+  Vue.component('RouterMfe', Mfe);
 
   const strats = Vue.config.optionMergeStrategies;
   // use the same hook merging strategy for route hooks
@@ -1324,6 +1358,7 @@ function addRouteRecord (
     path: normalizedPath,
     regex: compileRouteRegex(normalizedPath, pathToRegexpOptions),
     components: route.components || { default: route.component },
+    mfes: route.mfes || { default: route.mfe },
     instances: {},
     name,
     parent,
