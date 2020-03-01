@@ -4,6 +4,13 @@ export default {
     name: {
       type: String,
       default: 'default'
+    },
+    useShadowDom: {
+      type: Boolean,
+      default: false
+    },
+    shadowStyles: {
+      type: String
     }
   },
   render (h) {
@@ -15,7 +22,6 @@ export default {
 
   mounted () {
     const route = this.$parent.$route
-    debugger
     const depth = 0
     const matched = route.matched[depth]
     if (matched && matched.mfes) {
@@ -23,9 +29,23 @@ export default {
       const mfe = matched && matched.mfes[name]
       // const subroutes = this.mfe.router;
       // this.router.addRoutes(this.currentroute, subroutes);
-      mfe.boot(this.$refs.host).then(() => {
-        this.$emit('bootfinished')
-      })
+
+      if (this.useShadowDom) {
+        const host = this.$refs.host
+        const shadowroot = host.attachShadow({ mode: 'open' })
+
+        const shodowhost = document.createElement('div')
+
+        shadowroot.appendChild(shodowhost)
+        mfe.boot(shodowhost, { mountpoint: shadowroot }).then(() => {
+          this.$emit('bootfinished')
+        })
+      } else {
+        const host = this.$refs.host
+        mfe.boot(host, { mountpoint: this.$refs.host }).then(() => {
+          this.$emit('bootfinished')
+        })
+      }
     }
   }
 }
