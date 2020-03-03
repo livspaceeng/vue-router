@@ -25,6 +25,10 @@ export default {
     // has been toggled inactive but kept-alive.
     let depth = 0
     let inactive = false
+    debugger
+    if (parent.__mfedepth) {
+      depth += parent.__mfedepth
+    }
     while (parent && parent._routerRoot !== parent) {
       const vnodeData = parent.$vnode ? parent.$vnode.data : {}
       if (vnodeData.routerView) {
@@ -53,7 +57,7 @@ export default {
         return h()
       }
     }
-
+    debugger
     const matched = route.matched[depth]
     const component = matched && matched.components[name]
 
