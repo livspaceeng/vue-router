@@ -17,13 +17,11 @@ export default {
     // used by devtools to display a router-view badge
     // data.routerView = true
     // const h = parent.$createElement
-    debugger
     this.$vnode.data.routerView = true
     return h('div', { ref: 'host', attrs: { 'mfe-router-outlet': true }})
   },
 
   mounted () {
-    debugger
     const route = this.$parent.$route
     const depth = 0
     const matched = route.matched[depth]
@@ -34,7 +32,6 @@ export default {
       // this.router.addRoutes(this.currentroute, subroutes);
 
       if (this.useShadowDom) {
-        debugger
         const host = this.$refs.host
         const shadowroot = host.attachShadow({ mode: 'open' })
 

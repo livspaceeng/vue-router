@@ -25,7 +25,6 @@ export default {
     // has been toggled inactive but kept-alive.
     let depth = 0
     let inactive = false
-    debugger
     if (parent.__mfedepth) {
       depth += parent.__mfedepth
     }
@@ -57,7 +56,6 @@ export default {
         return h()
       }
     }
-    debugger
     const matched = route.matched[depth]
     const component = matched && matched.components[name]
 
