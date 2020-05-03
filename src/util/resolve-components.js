@@ -65,6 +65,41 @@ export function resolveAsyncComponents (matched: Array<RouteRecord>): Function {
       }
     })
 
+    flatMapMfes(matched, (def, _, match, key) => {
+      if (typeof def === 'function') {
+        hasAsync = true
+        pending++
+
+        const resolve = resolvedDef => {
+          if (isESModule(resolvedDef)) {
+            resolvedDef = resolvedDef.default
+          }
+          match.mfes[key] = resolvedDef
+          pending--
+          if (pending <= 0) {
+            next()
+          }
+        }
+
+        const reject = reason => {
+          const msg = `Failed to resolve async component ${key}: ${reason}`
+          process.env.NODE_ENV !== 'production' && warn(false, msg)
+          if (!error) {
+            error = isError(reason)
+              ? reason
+              : new Error(msg)
+            next(error)
+          }
+        }
+
+        try {
+          def().then(resolve, reject)
+        } catch (e) {
+          reject(e)
+        }
+      }
+    })
+
     if (!hasAsync) next()
   }
 }
@@ -76,6 +111,19 @@ export function flatMapComponents (
   return flatten(matched.map(m => {
     return Object.keys(m.components).map(key => fn(
       m.components[key],
+      m.instances[key],
+      m, key
+    ))
+  }))
+}
+
+export function flatMapMfes (
+  matched: Array<RouteRecord>,
+  fn: Function
+): Array<?Function> {
+  return flatten(matched.map(m => {
+    return Object.keys(m.mfes).map(key => fn(
+      m.mfes[key],
       m.instances[key],
       m, key
     ))
