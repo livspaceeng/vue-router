@@ -6,16 +6,23 @@ const MFEBooter = {
   },
   render (h) {
     console.log('Booting mfe: ', this.mfe)
+
     this.$nextTick(() => {
-      // @rohit send the cache back to the mfe here so it can get hydrated
       this.mountmfe()
     })
-    // @rohit cache the dom here
+
+    if (this.mfe && this.mfe.mfevm) {
+      const el = this.mfe.mfevm.$el
+      const temphost = document.querySelector('#temphost')
+      temphost.innerHTML = ''
+      temphost.appendChild(el)
+    }
+
     return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name }})
   },
   methods: {
     mountmfe () {
-      if (this.mfe) { //  TODO: Modify to check that this vm is mounted on host
+      if (this.mfe && !this.mfe.mfevm) { //  TODO: Modify to check that this vm is mounted on host
         let shadowroot = this.$el.shadowRoot
         if (!shadowroot) {
           shadowroot = this.$el.attachShadow({ mode: 'open' })
@@ -27,6 +34,16 @@ const MFEBooter = {
         this.mfe.boot(shodowhost, { mountpoint: shadowroot, router: this.$router, depth: this.depth }).then(() => {
           this.$emit('bootfinished')
         })
+      } else if (this.mfe && this.mfe.mfevm) {
+        let shadowroot = this.$el.shadowRoot
+        if (!shadowroot) {
+          shadowroot = this.$el.attachShadow({ mode: 'open' })
+        }
+        shadowroot.innerHTML = ''
+        const shodowhost = document.createElement('div')
+        shadowroot.appendChild(shodowhost)
+        const temphost = document.querySelector('#temphost')
+        shodowhost.appendChild(temphost.childNodes[0])
       }
     }
   }
@@ -68,6 +85,7 @@ export default {
         parent.$router.addRoutes([{
           name: route.name,
           path: route.path,
+          mfe: mfe,
           children: subroutes
         }])
       }
