@@ -1,3 +1,5 @@
+import { warn } from '../util/warn'
+
 const MFEBooter = {
   name: 'mfe-booter',
   props: {
@@ -11,14 +13,27 @@ const MFEBooter = {
       this.mountmfe()
     })
 
-    if (this.mfe && this.mfe.mfevm) {
-      const el = this.mfe.mfevm.$el
-      const temphost = document.querySelector('#temphost')
-      temphost.innerHTML = ''
-      temphost.appendChild(el)
-    }
+    // if (this.mfe && this.mfe.mfevm) {
+    //   const el = this.mfe.mfevm.$el
+    //   const temphost = document.querySelector('#temphost')
+    //   temphost.innerHTML = ''
+    //   temphost.appendChild(el)
+    // }
 
     return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name }})
+  },
+  watch: {
+    mfe: function (newvalue, oldvalue) {
+      warn('Running watcher')
+      if (oldvalue && oldvalue.name && oldvalue.name !== newvalue.name) {
+        try {
+          oldvalue.mfevm.$destroy()
+          oldvalue.mfevm = null
+        } catch (err) {
+          warn('Tried to destroy vm but got error')
+        }
+      }
+    }
   },
   methods: {
     mountmfe () {
@@ -34,16 +49,6 @@ const MFEBooter = {
         this.mfe.boot(shodowhost, { mountpoint: shadowroot, router: this.$router, depth: this.depth }).then(() => {
           this.$emit('bootfinished')
         })
-      } else if (this.mfe && this.mfe.mfevm) {
-        let shadowroot = this.$el.shadowRoot
-        if (!shadowroot) {
-          shadowroot = this.$el.attachShadow({ mode: 'open' })
-        }
-        shadowroot.innerHTML = ''
-        const shodowhost = document.createElement('div')
-        shadowroot.appendChild(shodowhost)
-        const temphost = document.querySelector('#temphost')
-        shodowhost.appendChild(temphost.childNodes[0])
       }
     }
   }
