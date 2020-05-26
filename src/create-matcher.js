@@ -57,11 +57,21 @@ export function createMatcher (
       return _createRoute(record, location, redirectedFrom)
     } else if (location.path) {
       location.params = {}
+      let routeExist: boolean = false
       for (let i = 0; i < pathList.length; i++) {
         const path = pathList[i]
         const record = pathMap[path]
         if (matchRoute(record.regex, location.path, location.params)) {
+          routeExist = true
           return _createRoute(record, location, redirectedFrom)
+        }
+      }
+      if (!routeExist) {
+        var pathSplit = location.path.split('/')
+        var expectedPath = '/' + pathSplit[1]
+        if (pathMap[expectedPath] && matchRoute(pathMap[expectedPath].regex, expectedPath, location.params)) {
+          location.path = expectedPath
+          return _createRoute(pathMap[expectedPath], location, redirectedFrom)
         }
       }
     }
