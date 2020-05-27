@@ -6,7 +6,7 @@ const MFEBooter = {
     mfe: {},
     depth: {}
   },
-  render (h) {
+  render(h) {
     console.log('Booting mfe: ', this.mfe)
 
     this.$nextTick(() => {
@@ -20,7 +20,7 @@ const MFEBooter = {
     //   temphost.appendChild(el)
     // }
 
-    return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name }})
+    return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name } })
   },
   watch: {
     mfe: function (newvalue, oldvalue) {
@@ -36,8 +36,8 @@ const MFEBooter = {
     }
   },
   methods: {
-    mountmfe () {
-      if (this.mfe && !this.mfe.mfevm) { //  TODO: Modify to check that this vm is mounted on host
+    mountmfe() {
+      if (this.mfe && !this.mfe.mfevm) {
         let shadowroot = this.$el.shadowRoot
         if (!shadowroot) {
           shadowroot = this.$el.attachShadow({ mode: 'open' })
@@ -46,9 +46,15 @@ const MFEBooter = {
         const shodowhost = document.createElement('div')
         shadowroot.appendChild(shodowhost)
 
-        this.mfe.boot(shodowhost, { mountpoint: shadowroot, router: this.$router, depth: this.depth }).then(() => {
-          this.$emit('bootfinished')
-        })
+        this.mfe
+          .boot(shodowhost, {
+            mountpoint: shadowroot,
+            router: this.$router,
+            depth: this.depth
+          })
+          .then(() => {
+            this.$emit('bootfinished')
+          })
       }
     }
   }
@@ -70,38 +76,56 @@ export default {
       type: String
     }
   },
-  render (h, { props, children, parent, data }) {
+  render(h, { props, children, parent, data }) {
     // used by devtools to display a router-view badge
     // data.routerView = true
     // const h = parent.$createElement
     data.routerView = true
+    // parent.$vnode.data = data;
     const route = parent.$route
-    const depth = 0
-    const matched = route.matched[depth]
 
-    let vnode = h('div', { attrs: { 'mfe-router-outlet': true }}, 'No mfe was matched!')
+    let depth = 0
+    if (parent.mfedepth !== undefined) {
+      depth += parent.mfedepth
+    }
+    // let depth_temp = 0;
+    // while (parent && parent._routerRoot !== parent) {
+    //   const vnodeData = parent.$vnode ? parent.$vnode.data : {}
+    //   if (vnodeData.routerView) {
+    //     depth_temp++
+    //   }
+    //   parent = parent.$parent
+    // }
+    // console.log(depth_temp)
+    // data.routerViewDepth = depth
+    const matched = route.matched[depth]
+    const name = props.name
+    let vnode = h()
+    //let vnode = h('div', { attrs: { 'mfe-router-outlet': name }}, 'No mfe was matched!')
 
     if (matched && matched.mfes) {
-      const name = Object.keys(matched.mfes)[0]
+      // const name = Object.keys(matched.mfes)[0]
       const mfe = matched && matched.mfes[name]
 
       if (name && mfe) {
         const subroutes = mfe.routes
-        parent.$router.addRoutes([{
-          name: route.name,
-          path: route.path,
-          mfe: mfe,
-          children: subroutes
-        }])
+        parent.$router.addRoutes([
+          {
+            name: route.name,
+            path: route.path,
+            mfe: mfe,
+            children: subroutes
+          }
+        ])
       }
 
-      vnode = h('div',
+      vnode = h(
+        'div',
         {
-          attrs: { 'mfe-router-outlet': true }
+          attrs: { 'mfe-router-outlet': name }
         },
-        [
-          h(MFEBooter, { props: { mfe, depth: depth + 1 }})
-        ])
+        [h(MFEBooter, { props: { mfe, depth: depth + 1 } })]
+      )
     }
     return vnode
   }
