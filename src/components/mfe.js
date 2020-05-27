@@ -4,7 +4,8 @@ const MFEBooter = {
   name: 'mfe-booter',
   props: {
     mfe: {},
-    depth: {}
+    depth: {},
+    path_to_redirect_after_boot: null
   },
   render (h) {
     console.log('Booting mfe: ', this.mfe)
@@ -47,6 +48,9 @@ const MFEBooter = {
         shadowroot.appendChild(shodowhost)
 
         this.mfe.boot(shodowhost, { mountpoint: shadowroot, router: this.$router, depth: this.depth }).then(() => {
+          if (this.path_to_redirect_after_boot) {
+            this.$router.push({ path: this.path_to_redirect_after_boot })
+          }
           this.$emit('bootfinished')
         })
       }
@@ -100,7 +104,7 @@ export default {
           attrs: { 'mfe-router-outlet': true }
         },
         [
-          h(MFEBooter, { props: { mfe, depth: depth + 1 }})
+          h(MFEBooter, { props: { mfe, depth: depth + 1, path_to_redirect_after_boot: route.redirectedFrom }})
         ])
     }
     return vnode

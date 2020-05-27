@@ -17,16 +17,32 @@ export function createRoute (
   try {
     query = clone(query)
   } catch (e) {}
-
-  const route: Route = {
-    name: location.name || (record && record.name),
-    meta: (record && record.meta) || {},
-    path: location.path || '/',
-    hash: location.hash || '',
-    query,
-    params: location.params || {},
-    fullPath: getFullPath(location, stringifyQuery),
-    matched: record ? formatMatch(record) : []
+  var route: Route = {}
+  if (record && record.mferedirect) {
+    route = {
+      name: location.name || (record && record.name),
+      meta: {},
+      path: location.path || '/',
+      hash: location.hash || '',
+      query,
+      params: location.params || {},
+      fullPath: getFullPath(location, stringifyQuery),
+      matched: record ? formatMatch(record) : [],
+      mferedirect: {
+        path_to_redirect_after_boot: record.mferedirect
+      }
+    }
+  } else {
+    route = {
+      name: location.name || (record && record.name),
+      meta: (record && record.meta) || {},
+      path: location.path || '/',
+      hash: location.hash || '',
+      query,
+      params: location.params || {},
+      fullPath: getFullPath(location, stringifyQuery),
+      matched: record ? formatMatch(record) : []
+    }
   }
   if (redirectedFrom) {
     route.redirectedFrom = getFullPath(redirectedFrom, stringifyQuery)

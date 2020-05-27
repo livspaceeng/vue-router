@@ -57,21 +57,25 @@ export function createMatcher (
       return _createRoute(record, location, redirectedFrom)
     } else if (location.path) {
       location.params = {}
-      let routeExist: boolean = false
+      let routeExists: boolean = false
       for (let i = 0; i < pathList.length; i++) {
         const path = pathList[i]
         const record = pathMap[path]
         if (matchRoute(record.regex, location.path, location.params)) {
-          routeExist = true
+          routeExists = true
           return _createRoute(record, location, redirectedFrom)
         }
       }
-      if (!routeExist) {
+      if (!routeExists) {
         var pathSplit = location.path.split('/')
-        var expectedPath = '/' + pathSplit[1]
-        if (pathMap[expectedPath] && matchRoute(pathMap[expectedPath].regex, expectedPath, location.params)) {
-          location.path = expectedPath
-          return _createRoute(pathMap[expectedPath], location, redirectedFrom)
+        var possibleMfePath = '/' + pathSplit[1]
+        if (pathMap[possibleMfePath] && pathMap[possibleMfePath].mfes &&
+          pathMap[possibleMfePath].mfes.default !== undefined &&
+          matchRoute(pathMap[possibleMfePath].regex, possibleMfePath, location.params)) {
+          const redirectRecord: RouteRecord = JSON.parse(JSON.stringify(pathMap[possibleMfePath]))
+          redirectRecord.mferedirect = location.path
+          redirectRecord.redirect = possibleMfePath
+          return _createRoute(redirectRecord, location, redirectedFrom)
         }
       }
     }
