@@ -115,6 +115,7 @@ export interface RouteRecord {
   name?: string
   parent?: RouteRecord
   redirect?: RedirectOption
+  mferedirect?: RedirectOption
   matchAs?: string
   meta: any
   beforeEnter?: (

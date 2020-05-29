@@ -4,9 +4,10 @@ const MFEBooter = {
   name: 'mfe-booter',
   props: {
     mfe: {},
-    depth: {}
+    depth: {},
+    path_to_redirect_after_boot: null
   },
-  render(h) {
+  render (h) {
     console.log('Booting mfe: ', this.mfe)
 
     this.$nextTick(() => {
@@ -20,7 +21,7 @@ const MFEBooter = {
     //   temphost.appendChild(el)
     // }
 
-    return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name } })
+    return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name }})
   },
   watch: {
     mfe: function (newvalue, oldvalue) {
@@ -36,7 +37,7 @@ const MFEBooter = {
     }
   },
   methods: {
-    mountmfe() {
+    mountmfe () {
       if (this.mfe && !this.mfe.mfevm) {
         let shadowroot = this.$el.shadowRoot
         if (!shadowroot) {
@@ -46,15 +47,12 @@ const MFEBooter = {
         const shodowhost = document.createElement('div')
         shadowroot.appendChild(shodowhost)
 
-        this.mfe
-          .boot(shodowhost, {
-            mountpoint: shadowroot,
-            router: this.$router,
-            depth: this.depth
-          })
-          .then(() => {
-            this.$emit('bootfinished')
-          })
+        this.mfe.boot(shodowhost, { mountpoint: shadowroot, router: this.$router, depth: this.depth }).then(() => {
+          if (this.path_to_redirect_after_boot) {
+            this.$router.push({ path: this.path_to_redirect_after_boot })
+          }
+          this.$emit('bootfinished')
+        })
       }
     }
   }
@@ -76,7 +74,7 @@ export default {
       type: String
     }
   },
-  render(h, { props, children, parent, data }) {
+  render (h, { props, children, parent, data }) {
     // used by devtools to display a router-view badge
     // data.routerView = true
     // const h = parent.$createElement
@@ -101,7 +99,7 @@ export default {
     const matched = route.matched[depth]
     const name = props.name
     let vnode = h()
-    //let vnode = h('div', { attrs: { 'mfe-router-outlet': name }}, 'No mfe was matched!')
+    // let vnode = h('div', { attrs: { 'mfe-router-outlet': name }}, 'No mfe was matched!')
 
     if (matched && matched.mfes) {
       // const name = Object.keys(matched.mfes)[0]
@@ -124,8 +122,9 @@ export default {
         {
           attrs: { 'mfe-router-outlet': name }
         },
-        [h(MFEBooter, { props: { mfe, depth: depth + 1 } })]
-      )
+        [
+          h(MFEBooter, { props: { mfe, depth: depth + 1, path_to_redirect_after_boot: route.redirectedFrom }})
+        ])
     }
     return vnode
   }
