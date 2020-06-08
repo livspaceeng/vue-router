@@ -161,6 +161,14 @@ export default class VueRouter {
     }
   }
 
+  // mfepush(location: RawLocation, onComplete?: Function, onAbort?: Function, mferoutepath?:any) {
+  //   // $flow-disable-line
+  //   // if (mferoutepath) {
+  //   //   location.path = mferoutepath + location.path
+  //   // }
+  //   this.push(location, onComplete, onAbort)
+  // }
+
   replace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
     // $flow-disable-line
     if (!onComplete && !onAbort && typeof Promise !== 'undefined') {

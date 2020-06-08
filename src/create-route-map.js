@@ -22,7 +22,18 @@ export function createRouteMap (
   const nameMap: Dictionary<RouteRecord> = oldNameMap || Object.create(null)
 
   routes.forEach(route => {
-    addRouteRecord(pathList, pathMap, nameMap, route)
+    let mfeParentRoute
+    // find if any children of mfe are non root and requiring routing then they must
+    // be added with the parent link
+    if (route.mfe && route.children) {
+      const isSomeNonRootMfeChild = route.children.find((childRoute) => {
+        return childRoute.path !== ''
+      })
+      if (isSomeNonRootMfeChild) {
+        mfeParentRoute = pathMap[route.path]
+      }
+    }
+    addRouteRecord(pathList, pathMap, nameMap, route, mfeParentRoute)
   })
 
   // ensure wildcard routes are always at the end

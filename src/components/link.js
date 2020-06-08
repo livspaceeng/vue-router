@@ -35,12 +35,28 @@ export default {
   render (h: Function) {
     const router = this.$router
     const current = this.$route
+    let mferoutermountlink
+    let parent = this.$parent
+    if (this.to.mfepath) {
+      while (parent) {
+        if (parent._isMfe) {
+          mferoutermountlink = parent._mfeMountPath
+          this.to.path = mferoutermountlink + this.to.path
+          // if (mferoutermountlink.search(this.to.path) < 0) {
+          //   mferoutermountlink = mferoutermountlink.split('/').slice(0, mferoutermountlink.split('/').length-1).join('/')
+          // }
+        }
+        parent = parent.$parent
+      }
+    }
+    // if (mferoutermountlink) {
+    //   this.to.path = mferoutermountlink + this.to.path
+    // }
     const { location, route, href } = router.resolve(
       this.to,
       current,
       this.append
     )
-
     const classes = {}
     const globalActiveClass = router.options.linkActiveClass
     const globalExactActiveClass = router.options.linkExactActiveClass

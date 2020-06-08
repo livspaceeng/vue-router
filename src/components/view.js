@@ -56,7 +56,15 @@ export default {
         return h()
       }
     }
-    const matched = route.matched[depth]
+    let matched
+    // note: @self will have to fix the depth calculation to get the correct router-view depth
+    if (parent.__mfedepth) {
+      matched = route.matched.find((routerecord) => {
+        return routerecord.path === route.path
+      })
+    } else {
+      matched = route.matched[depth]
+    }
     const component = matched && matched.components[name]
 
     // render empty node if no matched route or no config component

@@ -17,17 +17,17 @@ export type Matcher = {
   addRoutes: (routes: Array<RouteConfig>) => void
 }
 
-export function createMatcher(
+export function createMatcher (
   routes: Array<RouteConfig>,
   router: VueRouter
 ): Matcher {
   const { pathList, pathMap, nameMap } = createRouteMap(routes)
 
-  function addRoutes(routes) {
+  function addRoutes (routes) {
     createRouteMap(routes, pathList, pathMap, nameMap)
   }
 
-  function match(
+  function match (
     raw: RawLocation,
     currentRoute?: Route,
     redirectedFrom?: Location
@@ -75,24 +75,26 @@ export function createMatcher(
         }
       }
       if (!routeExists) {
-        var pathSplit = location.path.split('/')
-        var possibleMfePath = '/' + pathSplit[1]
-        if (
-          pathMap[possibleMfePath] &&
-          pathMap[possibleMfePath].mfes &&
-          pathMap[possibleMfePath].mfes.default !== undefined &&
-          matchRoute(
-            pathMap[possibleMfePath].regex,
-            possibleMfePath,
-            location.params
-          )
-        ) {
-          const redirectRecord: RouteRecord = JSON.parse(
-            JSON.stringify(pathMap[possibleMfePath])
-          )
-          redirectRecord.mferedirect = location.path
-          redirectRecord.redirect = possibleMfePath
-          return _createRoute(redirectRecord, location, redirectedFrom)
+        const pathSplit = location.path.split('/')
+        const routePathsLength = pathSplit.length
+        for (let i = 0; i < routePathsLength; i++) {
+          pathSplit.pop()
+          const possibleMfePath = pathSplit.join('/')
+          if (
+            pathMap[possibleMfePath] &&
+            pathMap[possibleMfePath].mfes &&
+            pathMap[possibleMfePath].mfes.default !== undefined &&
+            matchRoute(
+              pathMap[possibleMfePath].regex,
+              possibleMfePath,
+              location.params
+            )
+          ) {
+            const redirectRecord: RouteRecord = Object.assign({}, pathMap[possibleMfePath])
+            redirectRecord.mferedirect = location.path
+            redirectRecord.redirect = possibleMfePath
+            return _createRoute(redirectRecord, location, redirectedFrom)
+          }
         }
       }
     }
@@ -100,7 +102,7 @@ export function createMatcher(
     return _createRoute(null, location)
   }
 
-  function redirect(record: RouteRecord, location: Location): Route {
+  function redirect (record: RouteRecord, location: Location): Route {
     const originalRedirect = record.redirect
     let redirect =
       typeof originalRedirect === 'function'
@@ -173,7 +175,7 @@ export function createMatcher(
     }
   }
 
-  function alias(
+  function alias (
     record: RouteRecord,
     location: Location,
     matchAs: string
@@ -196,7 +198,7 @@ export function createMatcher(
     return _createRoute(null, location)
   }
 
-  function _createRoute(
+  function _createRoute (
     record: ?RouteRecord,
     location: Location,
     redirectedFrom?: Location
@@ -216,7 +218,7 @@ export function createMatcher(
   }
 }
 
-function matchRoute(regex: RouteRegExp, path: string, params: Object): boolean {
+function matchRoute (regex: RouteRegExp, path: string, params: Object): boolean {
   const m = path.match(regex)
 
   if (!m) {
@@ -237,6 +239,6 @@ function matchRoute(regex: RouteRegExp, path: string, params: Object): boolean {
   return true
 }
 
-function resolveRecordPath(path: string, record: RouteRecord): string {
+function resolveRecordPath (path: string, record: RouteRecord): string {
   return resolvePath(path, record.parent ? record.parent.path : '/', true)
 }

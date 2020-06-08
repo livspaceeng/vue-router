@@ -5,9 +5,10 @@ const MFEBooter = {
   props: {
     mfe: {},
     depth: {},
-    path_to_redirect_after_boot: null
+    path_to_redirect_after_boot: null,
+    mfemouthpath: ''
   },
-  render(h) {
+  render (h) {
     console.log('Booting mfe: ', this.mfe)
 
     this.$nextTick(() => {
@@ -21,11 +22,11 @@ const MFEBooter = {
     //   temphost.appendChild(el)
     // }
 
-    return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name } })
+    return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name }})
   },
   watch: {
     mfe: {
-      handler: function(newvalue, oldvalue) {
+      handler: function (newvalue, oldvalue) {
         warn(false, `Running watcher for mfe ${newvalue.name}`)
         if (oldvalue && oldvalue.name && oldvalue.name !== newvalue.name) {
           try {
@@ -38,12 +39,12 @@ const MFEBooter = {
       immediate: true
     }
   },
-  destroyed() {
+  destroyed () {
     warn(false, `Destroying mfe ${this.mfe.name}`)
     this.destroymfe(this.mfe)
   },
   methods: {
-    mountmfe() {
+    mountmfe () {
       if (this.mfe && !this.mfe.mfevm) {
         let shadowroot = this.$el.shadowRoot
         if (!shadowroot) {
@@ -57,7 +58,10 @@ const MFEBooter = {
           .boot(shodowhost, {
             mountpoint: shadowroot,
             router: this.$router,
-            depth: this.depth
+            depth: this.depth,
+            mfemouthpath: this.mfemouthpath
+              ? this.mfemouthpath
+              : this.$route.path
           })
           .then(() => {
             if (this.path_to_redirect_after_boot) {
@@ -67,7 +71,7 @@ const MFEBooter = {
           })
       }
     },
-    destroymfe(mfe) {
+    destroymfe (mfe) {
       if (mfe) {
         mfe.mfevm.$destroy()
         mfe.mfevm = null
@@ -92,7 +96,7 @@ export default {
       type: String
     }
   },
-  render(h, { props, children, parent, data }) {
+  render (h, { props, children, parent, data }) {
     // used by devtools to display a router-view badge
     // data.routerView = true
     // const h = parent.$createElement
@@ -104,7 +108,14 @@ export default {
     if (parent.mfedepth !== undefined) {
       depth += parent.mfedepth
     }
-    //get matched routes which have mfes  - checking for default here as named outlets needs more work
+    // let parentIterator = parent;
+    // while (parentIterator) {
+    //   if (parentIterator._isMfe) {
+    //     depth += 1;
+    //   }
+    //   parentIterator = parentIterator.$parent
+    // }
+    // get matched routes which have mfes  - checking for default here as named outlets needs more work
     const mfeRoutesMatched = route.matched.filter(matchroute => {
       return matchroute.mfes.default !== undefined
     })
@@ -128,7 +139,6 @@ export default {
           }
         ])
       }
-
       vnode = h(
         'div',
         {
@@ -139,7 +149,10 @@ export default {
             props: {
               mfe,
               depth: depth + 1,
-              path_to_redirect_after_boot: route.redirectedFrom
+              path_to_redirect_after_boot: route.redirectedFrom,
+              mfemouthpath: mfeRoutesMatched[depth]
+                ? mfeRoutesMatched[depth]['path']
+                : ''
             }
           })
         ]
