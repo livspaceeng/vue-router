@@ -53,7 +53,13 @@ const MFEBooter = {
         shadowroot.innerHTML = ''
         const shodowhost = document.createElement('div')
         shadowroot.appendChild(shodowhost)
-
+        // let mfemouthpath = ""
+        // if (
+        //   this.mfemouthpath &&
+        //   this.$route.path.match(this.mfemouthpath) !== null
+        // ) {
+        //   mfemouthpath = this.$route.path
+        // }
         this.mfe
           .boot(shodowhost, {
             mountpoint: shadowroot,
@@ -105,16 +111,17 @@ export default {
     const route = parent.$route
 
     let depth = 0
-    if (parent.mfedepth !== undefined) {
-      depth += parent.mfedepth
-    }
-    // let parentIterator = parent;
-    // while (parentIterator) {
-    //   if (parentIterator._isMfe) {
-    //     depth += 1;
-    //   }
-    //   parentIterator = parentIterator.$parent
+
+    // if (parent.mfedepth !== undefined) {
+    //   depth += parent.mfedepth
     // }
+    let parentIterator = parent
+    while (parentIterator) {
+      if (parentIterator._isMfe) {
+        depth += parentIterator.mfedepth
+      }
+      parentIterator = parentIterator.$parent
+    }
     // get matched routes which have mfes  - checking for default here as named outlets needs more work
     const mfeRoutesMatched = route.matched.filter(matchroute => {
       return matchroute.mfes.default !== undefined

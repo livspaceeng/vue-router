@@ -60,7 +60,7 @@ export default {
     // note: @self will have to fix the depth calculation to get the correct router-view depth
     if (parent.__mfedepth) {
       matched = route.matched.find((routerecord) => {
-        return routerecord.path === route.path
+        return route.path.match(routerecord.regex) !== null
       })
     } else {
       matched = route.matched[depth]
