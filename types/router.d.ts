@@ -30,6 +30,11 @@ export declare class VueRouter {
     onComplete?: Function,
     onAbort?: ErrorHandler
   ): void
+  mfepush(
+    location: RawLocation,
+    onComplete?: Function,
+    onAbort?: ErrorHandler
+  ): void
   replace(
     location: RawLocation,
     onComplete?: Function,
@@ -115,6 +120,7 @@ export interface RouteRecord {
   name?: string
   parent?: RouteRecord
   redirect?: RedirectOption
+  mferedirect?: RedirectOption
   matchAs?: string
   meta: any
   beforeEnter?: (
@@ -137,6 +143,7 @@ export interface Location {
   params?: Dictionary<string>
   append?: boolean
   replace?: boolean
+  mfepath?: boolean
 }
 
 export interface Route {

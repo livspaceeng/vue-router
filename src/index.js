@@ -16,21 +16,21 @@ import { AbstractHistory } from './history/abstract'
 import type { Matcher } from './create-matcher'
 
 export default class VueRouter {
-  static install: () => void;
-  static version: string;
+  static install: () => void
+  static version: string
 
-  app: any;
-  apps: Array<any>;
-  ready: boolean;
-  readyCbs: Array<Function>;
-  options: RouterOptions;
-  mode: string;
-  history: HashHistory | HTML5History | AbstractHistory;
-  matcher: Matcher;
-  fallback: boolean;
-  beforeHooks: Array<?NavigationGuard>;
-  resolveHooks: Array<?NavigationGuard>;
-  afterHooks: Array<?AfterNavigationHook>;
+  app: any
+  apps: Array<any>
+  ready: boolean
+  readyCbs: Array<Function>
+  options: RouterOptions
+  mode: string
+  history: HashHistory | HTML5History | AbstractHistory
+  matcher: Matcher
+  fallback: boolean
+  beforeHooks: Array<?NavigationGuard>
+  resolveHooks: Array<?NavigationGuard>
+  afterHooks: Array<?AfterNavigationHook>
 
   constructor (options: RouterOptions = {}) {
     this.app = null
@@ -42,7 +42,8 @@ export default class VueRouter {
     this.matcher = createMatcher(options.routes || [], this)
 
     let mode = options.mode || 'hash'
-    this.fallback = mode === 'history' && !supportsPushState && options.fallback !== false
+    this.fallback =
+      mode === 'history' && !supportsPushState && options.fallback !== false
     if (this.fallback) {
       mode = 'hash'
     }
@@ -68,11 +69,7 @@ export default class VueRouter {
     }
   }
 
-  match (
-    raw: RawLocation,
-    current?: Route,
-    redirectedFrom?: Location
-  ): Route {
+  match (raw: RawLocation, current?: Route, redirectedFrom?: Location): Route {
     return this.matcher.match(raw, current, redirectedFrom)
   }
 
@@ -81,11 +78,12 @@ export default class VueRouter {
   }
 
   init (app: any /* Vue component instance */) {
-    process.env.NODE_ENV !== 'production' && assert(
-      install.installed,
-      `not installed. Make sure to call \`Vue.use(VueRouter)\` ` +
-      `before creating root instance.`
-    )
+    process.env.NODE_ENV !== 'production' &&
+      assert(
+        install.installed,
+        `not installed. Make sure to call \`Vue.use(VueRouter)\` ` +
+          `before creating root instance.`
+      )
 
     this.apps.push(app)
 
@@ -124,7 +122,7 @@ export default class VueRouter {
     }
 
     history.listen(route => {
-      this.apps.forEach((app) => {
+      this.apps.forEach(app => {
         app._route = route
       })
     })
@@ -161,6 +159,25 @@ export default class VueRouter {
     }
   }
 
+  mfepush (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+    // $flow-disable-line
+    // if (location.mfepath) {
+    const parent = this.apps.find(app => {
+      return app._isMfe
+    })
+    if (parent) {
+      location.path = parent._mfeMountPath + location.path
+    }
+    // while (parent) {
+    //   if (parent._isMfe) {
+    //     location.path = parent._mfeMountPath + location.path
+    //   }
+    //   parent = parent.$parent
+    // }
+    // }
+    this.push(location, onComplete, onAbort)
+  }
+
   replace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
     // $flow-disable-line
     if (!onComplete && !onAbort && typeof Promise !== 'undefined') {
@@ -193,11 +210,14 @@ export default class VueRouter {
     if (!route) {
       return []
     }
-    return [].concat.apply([], route.matched.map(m => {
-      return Object.keys(m.components).map(key => {
-        return m.components[key]
+    return [].concat.apply(
+      [],
+      route.matched.map(m => {
+        return Object.keys(m.components).map(key => {
+          return m.components[key]
+        })
       })
-    }))
+    )
   }
 
   resolve (
@@ -213,12 +233,7 @@ export default class VueRouter {
     resolved: Route
   } {
     current = current || this.history.current
-    const location = normalizeLocation(
-      to,
-      current,
-      append,
-      this
-    )
+    const location = normalizeLocation(to, current, append, this)
     const route = this.match(location, current)
     const fullPath = route.redirectedFrom || route.fullPath
     const base = this.history.base

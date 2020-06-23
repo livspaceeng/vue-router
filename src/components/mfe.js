@@ -4,7 +4,9 @@ const MFEBooter = {
   name: 'mfe-booter',
   props: {
     mfe: {},
-    depth: {}
+    depth: {},
+    path_to_redirect_after_boot: null,
+    mfemouthpath: ''
   },
   render (h) {
     console.log('Booting mfe: ', this.mfe)
@@ -23,21 +25,27 @@ const MFEBooter = {
     return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name }})
   },
   watch: {
-    mfe: function (newvalue, oldvalue) {
-      warn('Running watcher')
-      if (oldvalue && oldvalue.name && oldvalue.name !== newvalue.name) {
-        try {
-          oldvalue.mfevm.$destroy()
-          oldvalue.mfevm = null
-        } catch (err) {
-          warn('Tried to destroy vm but got error')
+    mfe: {
+      handler: function (newvalue, oldvalue) {
+        warn(false, `Running watcher for mfe ${newvalue.name}`)
+        if (oldvalue && oldvalue.name && oldvalue.name !== newvalue.name) {
+          try {
+            this.destroymfe(oldvalue)
+          } catch (err) {
+            warn(false, 'Tried to destroy vm but got error')
+          }
         }
-      }
+      },
+      immediate: true
     }
+  },
+  destroyed () {
+    warn(false, `Destroying mfe ${this.mfe.name}`)
+    this.destroymfe(this.mfe)
   },
   methods: {
     mountmfe () {
-      if (this.mfe && !this.mfe.mfevm) { //  TODO: Modify to check that this vm is mounted on host
+      if (this.mfe && !this.mfe.mfevm) {
         let shadowroot = this.$el.shadowRoot
         if (!shadowroot) {
           shadowroot = this.$el.attachShadow({ mode: 'open' })
@@ -45,10 +53,34 @@ const MFEBooter = {
         shadowroot.innerHTML = ''
         const shodowhost = document.createElement('div')
         shadowroot.appendChild(shodowhost)
-
-        this.mfe.boot(shodowhost, { mountpoint: shadowroot, router: this.$router, depth: this.depth }).then(() => {
-          this.$emit('bootfinished')
-        })
+        // let mfemouthpath = ""
+        // if (
+        //   this.mfemouthpath &&
+        //   this.$route.path.match(this.mfemouthpath) !== null
+        // ) {
+        //   mfemouthpath = this.$route.path
+        // }
+        this.mfe
+          .boot(shodowhost, {
+            mountpoint: shadowroot,
+            router: this.$router,
+            depth: this.depth,
+            mfemouthpath: this.mfemouthpath
+              ? this.mfemouthpath
+              : this.$route.path
+          })
+          .then(() => {
+            if (this.path_to_redirect_after_boot) {
+              this.$router.push({ path: this.path_to_redirect_after_boot })
+            }
+            this.$emit('bootfinished')
+          })
+      }
+    },
+    destroymfe (mfe) {
+      if (mfe) {
+        mfe.mfevm.$destroy()
+        mfe.mfevm = null
       }
     }
   }
@@ -75,33 +107,63 @@ export default {
     // data.routerView = true
     // const h = parent.$createElement
     data.routerView = true
+    // parent.$vnode.data = data;
     const route = parent.$route
-    const depth = 0
-    const matched = route.matched[depth]
 
-    let vnode = h('div', { attrs: { 'mfe-router-outlet': true }}, 'No mfe was matched!')
+    let depth = 0
+
+    // if (parent.mfedepth !== undefined) {
+    //   depth += parent.mfedepth
+    // }
+    let parentIterator = parent
+    while (parentIterator) {
+      if (parentIterator._isMfe) {
+        depth += parentIterator.mfedepth
+      }
+      parentIterator = parentIterator.$parent
+    }
+    // get matched routes which have mfes  - checking for default here as named outlets needs more work
+    const mfeRoutesMatched = route.matched.filter(matchroute => {
+      return matchroute.mfes.default !== undefined
+    })
+    const matched = mfeRoutesMatched[depth]
+    const name = props.name
+    let vnode = h()
+    // let vnode = h('div', { attrs: { 'mfe-router-outlet': name }}, 'No mfe was matched!')
 
     if (matched && matched.mfes) {
-      const name = Object.keys(matched.mfes)[0]
+      // const name = Object.keys(matched.mfes)[0]
       const mfe = matched && matched.mfes[name]
 
-      if (name && mfe) {
+      if (name && mfe && !mfe.mfevm) {
         const subroutes = mfe.routes
-        parent.$router.addRoutes([{
-          name: route.name,
-          path: route.path,
-          mfe: mfe,
-          children: subroutes
-        }])
+        parent.$router.addRoutes([
+          {
+            name: route.name,
+            path: route.path,
+            mfe: mfe,
+            children: subroutes
+          }
+        ])
       }
-
-      vnode = h('div',
+      vnode = h(
+        'div',
         {
-          attrs: { 'mfe-router-outlet': true }
+          attrs: { 'mfe-router-outlet': name }
         },
         [
-          h(MFEBooter, { props: { mfe, depth: depth + 1 }})
-        ])
+          h(MFEBooter, {
+            props: {
+              mfe,
+              depth: depth + 1,
+              path_to_redirect_after_boot: route.redirectedFrom,
+              mfemouthpath: mfeRoutesMatched[depth]
+                ? mfeRoutesMatched[depth]['path']
+                : ''
+            }
+          })
+        ]
+      )
     }
     return vnode
   }

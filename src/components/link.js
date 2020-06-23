@@ -35,12 +35,30 @@ export default {
   render (h: Function) {
     const router = this.$router
     const current = this.$route
+    let parent = this.$parent
+    if (this.to.mfepath) {
+      while (parent) {
+        if (parent._isMfe) {
+          // let mferoutermountlink = parent._mfeMountPath.path
+          // if (mferoutermountlink[mferoutermountlink.length - 1] === '/') {
+          //   mferoutermountlink = mferoutermountlink.substring(0, mferoutermountlink.length-1)
+          // }
+          this.to.path = parent._mfeMountPath + this.to.path
+          // if (current.path.match(parent._mfeMountPath.regex) !== null) {
+          //   this.to.path = current.path + this.to.path
+          // }
+          // if (mferoutermountlink.search(this.to.path) < 0) {
+          //   mferoutermountlink = mferoutermountlink.split('/').slice(0, mferoutermountlink.split('/').length-1).join('/')
+          // }
+        }
+        parent = parent.$parent
+      }
+    }
     const { location, route, href } = router.resolve(
       this.to,
       current,
       this.append
     )
-
     const classes = {}
     const globalActiveClass = router.options.linkActiveClass
     const globalExactActiveClass = router.options.linkExactActiveClass
@@ -106,9 +124,7 @@ export default {
         if (process.env.NODE_ENV !== 'production') {
           warn(
             false,
-            `RouterLink with to="${
-              this.to
-            }" is trying to use a scoped slot but it didn't provide exactly one child. Wrapping the content with a span element.`
+            `RouterLink with to="${this.to}" is trying to use a scoped slot but it didn't provide exactly one child. Wrapping the content with a span element.`
           )
         }
         return scopedSlot.length === 0 ? h() : h('span', {}, scopedSlot)
