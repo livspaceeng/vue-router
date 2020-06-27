@@ -26,7 +26,7 @@ export default {
     let depth = 0
     let inactive = false
     if (parent.__mfedepth) {
-      depth += parent.__mfedepth
+      depth += parent.__mfedepth + 1
     }
     while (parent && parent._routerRoot !== parent) {
       const vnodeData = parent.$vnode ? parent.$vnode.data : {}
@@ -56,15 +56,7 @@ export default {
         return h()
       }
     }
-    let matched
-    // note: @self will have to fix the depth calculation to get the correct router-view depth
-    if (parent.__mfedepth) {
-      matched = route.matched.find((routerecord) => {
-        return route.path.match(routerecord.regex) !== null
-      })
-    } else {
-      matched = route.matched[depth]
-    }
+    const matched = route.matched[depth]
     const component = matched && matched.components[name]
 
     // render empty node if no matched route or no config component
