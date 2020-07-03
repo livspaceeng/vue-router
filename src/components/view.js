@@ -25,8 +25,19 @@ export default {
     // has been toggled inactive but kept-alive.
     let depth = 0
     let inactive = false
-    if (parent.__mfedepth) {
-      depth += parent.__mfedepth
+    // if (parent.__mfedepth) {
+    //   depth += parent.__mfedepth + 1
+    // }
+    let parentItr = parent
+    while (parentItr) {
+      if (parentItr._isMfe) {
+        // get depth only from the actual mfe and not its children
+        // 1 is added here because while adding child routes of mfe in create-route-map.js:36 a link to parent is
+        // provided to construct the proper matched array. This here creates one base entry with undefined path
+        // will have to debug even more to fix this..
+        depth += parentItr.mfedepth + 1
+      }
+      parentItr = parentItr.$parent
     }
     while (parent && parent._routerRoot !== parent) {
       const vnodeData = parent.$vnode ? parent.$vnode.data : {}
@@ -48,7 +59,12 @@ export default {
         // #2301
         // pass props
         if (cachedData.configProps) {
-          fillPropsinData(cachedComponent, data, cachedData.route, cachedData.configProps)
+          fillPropsinData(
+            cachedComponent,
+            data,
+            cachedData.route,
+            cachedData.configProps
+          )
         }
         return h(cachedComponent, data, children)
       } else {
@@ -56,15 +72,16 @@ export default {
         return h()
       }
     }
-    let matched
-    // note: @self will have to fix the depth calculation to get the correct router-view depth
-    if (parent.__mfedepth) {
-      matched = route.matched.find((routerecord) => {
-        return route.path.match(routerecord.regex) !== null
-      })
-    } else {
-      matched = route.matched[depth]
-    }
+    // let matched
+    // // note: @self will have to fix the depth calculation to get the correct router-view depth
+    // if (parent.__mfedepth) {
+    //   matched = route.matched.find((routerecord) => {
+    //     return route.path.match(routerecord.regex) !== null
+    //   })
+    // } else {
+    //   matched = route.matched[depth]
+    // }
+    const matched = route.matched[depth]
     const component = matched && matched.components[name]
 
     // render empty node if no matched route or no config component
@@ -81,10 +98,7 @@ export default {
     data.registerRouteInstance = (vm, val) => {
       // val could be undefined for unregistration
       const current = matched.instances[name]
-      if (
-        (val && current !== vm) ||
-        (!val && current === vm)
-      ) {
+      if ((val && current !== vm) || (!val && current === vm)) {
         matched.instances[name] = val
       }
     }
@@ -97,8 +111,9 @@ export default {
 
     // register instance in init hook
     // in case kept-alive component be actived when routes changed
-    data.hook.init = (vnode) => {
-      if (vnode.data.keepAlive &&
+    data.hook.init = vnode => {
+      if (
+        vnode.data.keepAlive &&
         vnode.componentInstance &&
         vnode.componentInstance !== matched.instances[name]
       ) {
@@ -122,12 +137,12 @@ export default {
 
 function fillPropsinData (component, data, route, configProps) {
   // resolve props
-  let propsToPass = data.props = resolveProps(route, configProps)
+  let propsToPass = (data.props = resolveProps(route, configProps))
   if (propsToPass) {
     // clone to prevent mutation
     propsToPass = data.props = extend({}, propsToPass)
     // pass non-declared props as attrs
-    const attrs = data.attrs = data.attrs || {}
+    const attrs = (data.attrs = data.attrs || {})
     for (const key in propsToPass) {
       if (!component.props || !(key in component.props)) {
         attrs[key] = propsToPass[key]
@@ -152,7 +167,7 @@ function resolveProps (route, config) {
         warn(
           false,
           `props in "${route.path}" is a ${typeof config}, ` +
-          `expecting an object, function or boolean.`
+            `expecting an object, function or boolean.`
         )
       }
   }
