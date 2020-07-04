@@ -80,17 +80,16 @@ export function createMatcher (
         for (let i = 0; i < routePathsLength; i++) {
           pathSplit.pop()
           const possibleMfePath = pathSplit.join('/')
+          const matchedRecord = Object.values(pathMap).find(record => record.regex.test(possibleMfePath))
           if (
-            pathMap[possibleMfePath] &&
-            pathMap[possibleMfePath].mfes &&
-            pathMap[possibleMfePath].mfes.default !== undefined &&
+            matchedRecord &&
             matchRoute(
-              pathMap[possibleMfePath].regex,
+              matchedRecord.regex,
               possibleMfePath,
               location.params
             )
           ) {
-            const redirectRecord: RouteRecord = Object.assign({}, pathMap[possibleMfePath])
+            const redirectRecord: RouteRecord = Object.assign({}, matchedRecord)
             redirectRecord.mferedirect = location.path
             redirectRecord.redirect = possibleMfePath
             return _createRoute(redirectRecord, location, redirectedFrom)
