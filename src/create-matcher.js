@@ -83,13 +83,15 @@ export function createMatcher (
           const matchedRecord = Object.values(pathMap).find(record => record.regex.test(possibleMfePath))
           if (
             matchedRecord &&
+            matchedRecord.mfes &&
+            matchedRecord.mfes.default !== undefined &&
             matchRoute(
               matchedRecord.regex,
               possibleMfePath,
               location.params
             )
           ) {
-            const redirectRecord: RouteRecord = Object.assign({}, matchedRecord)
+            const redirectRecord: RouteRecord = Object.assign({}, pathMap[possibleMfePath])
             redirectRecord.mferedirect = location.path
             redirectRecord.redirect = possibleMfePath
             return _createRoute(redirectRecord, location, redirectedFrom)

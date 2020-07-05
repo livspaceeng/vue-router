@@ -29,8 +29,11 @@ export function createRouteMap (
       const isSomeNonRootMfeChild = route.children.find(childRoute => {
         return childRoute.path !== ''
       })
+      // @rohit instead of just picking keys from pathMap we need to do regex matching
+      // for parametric routes
       if (isSomeNonRootMfeChild) {
-        mfeParentRoute = pathMap[route.path]
+        mfeParentRoute = Object.values(pathMap) // pathMap[route.path]
+          .find(record => record.regex.test(route.path))
       }
     }
     addRouteRecord(pathList, pathMap, nameMap, route, mfeParentRoute)
