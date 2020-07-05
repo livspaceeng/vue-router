@@ -6,7 +6,7 @@ const MFEBooter = {
     mfe: {},
     depth: {},
     path_to_redirect_after_boot: null,
-    mfemouthpath: ''
+    mfemountpath: ''
   },
   render (h) {
     console.log('Booting mfe: ', this.mfe)
@@ -53,20 +53,20 @@ const MFEBooter = {
         shadowroot.innerHTML = ''
         const shodowhost = document.createElement('div')
         shadowroot.appendChild(shodowhost)
-        // let mfemouthpath = ""
+        // let mfemountpath = ""
         // if (
-        //   this.mfemouthpath &&
-        //   this.$route.path.match(this.mfemouthpath) !== null
+        //   this.mfemountpath &&
+        //   this.$route.path.match(this.mfemountpath) !== null
         // ) {
-        //   mfemouthpath = this.$route.path
+        //   mfemountpath = this.$route.path
         // }
         this.mfe
           .boot(shodowhost, {
             mountpoint: shadowroot,
             router: this.$router,
             depth: this.depth,
-            mfemouthpath: this.mfemouthpath
-              ? this.mfemouthpath
+            mfemountpath: this.mfemountpath
+              ? this.mfemountpath
               : this.$route.path
           })
           .then(() => {
@@ -157,7 +157,7 @@ export default {
               mfe,
               depth: depth + 1,
               path_to_redirect_after_boot: route.redirectedFrom,
-              mfemouthpath: mfeRoutesMatched[depth]
+              mfemountpath: mfeRoutesMatched[depth]
                 ? mfeRoutesMatched[depth]['path']
                 : ''
             }
