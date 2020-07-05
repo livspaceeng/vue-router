@@ -25,9 +25,6 @@ export default {
     // has been toggled inactive but kept-alive.
     let depth = 0
     let inactive = false
-    // if (parent.__mfedepth) {
-    //   depth += parent.__mfedepth + 1
-    // }
     let parentItr = parent
     while (parentItr) {
       if (parentItr._isMfe) {
@@ -72,15 +69,6 @@ export default {
         return h()
       }
     }
-    // let matched
-    // // note: @self will have to fix the depth calculation to get the correct router-view depth
-    // if (parent.__mfedepth) {
-    //   matched = route.matched.find((routerecord) => {
-    //     return route.path.match(routerecord.regex) !== null
-    //   })
-    // } else {
-    //   matched = route.matched[depth]
-    // }
     const matched = route.matched[depth]
     const component = matched && matched.components[name]
 
