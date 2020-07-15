@@ -36,6 +36,7 @@ export default {
     const router = this.$router
     const current = this.$route
     let parent = this.$parent
+    const mferoutermountlink = Object.assign({}, this.to)
     if (this.to.mfepath) {
       while (parent) {
         if (parent._isMfe) {
@@ -43,7 +44,7 @@ export default {
           // if (mferoutermountlink[mferoutermountlink.length - 1] === '/') {
           //   mferoutermountlink = mferoutermountlink.substring(0, mferoutermountlink.length-1)
           // }
-          this.to.path = parent._mfeMountPath + this.to.path
+          mferoutermountlink.path = parent._mfeMountPath + this.to.path
           // if (current.path.match(parent._mfeMountPath.regex) !== null) {
           //   this.to.path = current.path + this.to.path
           // }
@@ -54,8 +55,9 @@ export default {
         parent = parent.$parent
       }
     }
+
     const { location, route, href } = router.resolve(
-      this.to,
+      mferoutermountlink,
       current,
       this.append
     )

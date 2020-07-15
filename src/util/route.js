@@ -18,32 +18,30 @@ export function createRoute (
     query = clone(query)
   } catch (e) {}
   var route: Route = {}
-  if (record && record.mferedirect) {
-    route = {
-      name: location.name || (record && record.name),
-      meta: {},
-      path: location.path || '/',
-      hash: location.hash || '',
-      query,
-      params: location.params || {},
-      fullPath: getFullPath(location, stringifyQuery),
-      matched: record ? formatMatch(record) : [],
-      mferedirect: {
-        path_to_redirect_after_boot: record.mferedirect
-      }
-    }
-  } else {
-    route = {
-      name: location.name || (record && record.name),
-      meta: (record && record.meta) || {},
-      path: location.path || '/',
-      hash: location.hash || '',
-      query,
-      params: location.params || {},
-      fullPath: getFullPath(location, stringifyQuery),
-      matched: record ? formatMatch(record) : []
-    }
+  // if (record && record.mferedirect) {
+  //   route = {
+  //     name: location.name || (record && record.name),
+  //     meta: {},
+  //     path: location.path || '/',
+  //     hash: location.hash || '',
+  //     query,
+  //     params: location.params || {},
+  //     fullPath: getFullPath(location, stringifyQuery),
+  //     matched: record ? formatMatch(record) : [],
+  //     mferedirect: (record && record.mferedirect) || ''
+  //   }
+  // } else {
+  route = {
+    name: location.name || (record && record.name),
+    meta: (record && record.meta) || {},
+    path: location.path || '/',
+    hash: location.hash || '',
+    query,
+    params: location.params || {},
+    fullPath: getFullPath(location, stringifyQuery),
+    matched: record ? formatMatch(record) : []
   }
+  // }
   if (redirectedFrom) {
     route.redirectedFrom = getFullPath(redirectedFrom, stringifyQuery)
   }
@@ -78,10 +76,7 @@ function formatMatch (record: ?RouteRecord): Array<RouteRecord> {
   return res
 }
 
-function getFullPath (
-  { path, query = {}, hash = '' },
-  _stringifyQuery
-): string {
+function getFullPath ({ path, query = {}, hash = '' }, _stringifyQuery): string {
   const stringify = _stringifyQuery || stringifyQuery
   return (path || '/') + stringify(query) + hash
 }
@@ -93,7 +88,8 @@ export function isSameRoute (a: Route, b: ?Route): boolean {
     return false
   } else if (a.path && b.path) {
     return (
-      a.path.replace(trailingSlashRE, '') === b.path.replace(trailingSlashRE, '') &&
+      a.path.replace(trailingSlashRE, '') ===
+        b.path.replace(trailingSlashRE, '') &&
       a.hash === b.hash &&
       isObjectEqual(a.query, b.query)
     )
@@ -130,15 +126,18 @@ function isObjectEqual (a = {}, b = {}): boolean {
 
 export function isIncludedRoute (current: Route, target: Route): boolean {
   return (
-    current.path.replace(trailingSlashRE, '/').indexOf(
-      target.path.replace(trailingSlashRE, '/')
-    ) === 0 &&
+    current.path
+      .replace(trailingSlashRE, '/')
+      .indexOf(target.path.replace(trailingSlashRE, '/')) === 0 &&
     (!target.hash || current.hash === target.hash) &&
     queryIncludes(current.query, target.query)
   )
 }
 
-function queryIncludes (current: Dictionary<string>, target: Dictionary<string>): boolean {
+function queryIncludes (
+  current: Dictionary<string>,
+  target: Dictionary<string>
+): boolean {
   for (const key in target) {
     if (!(key in current)) {
       return false

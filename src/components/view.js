@@ -25,17 +25,17 @@ export default {
     // has been toggled inactive but kept-alive.
     let depth = 0
     let inactive = false
-    let parentItr = parent
-    while (parentItr) {
-      if (parentItr._isMfe) {
-        // get depth only from the actual mfe and not its children
-        // 1 is added here because while adding child routes of mfe in create-route-map.js:36 a link to parent is
-        // provided to construct the proper matched array. This here creates one base entry with undefined path
-        // will have to debug even more to fix this..
-        depth += parentItr.mfedepth + 1
-      }
-      parentItr = parentItr.$parent
-    }
+    // let parentItr = parent
+    // while (parentItr) {
+    //   if (parentItr._isMfe) {
+    //     // get depth only from the actual mfe and not its children
+    //     // 1 is added here because while adding child routes of mfe in create-route-map.js:36 a link to parent is
+    //     // provided to construct the proper matched array. This here creates one base entry with undefined path
+    //     // will have to debug even more to fix this..
+    //     depth += parentItr.mfedepth
+    //   }
+    //   parentItr = parentItr.$parent
+    // }
     while (parent && parent._routerRoot !== parent) {
       const vnodeData = parent.$vnode ? parent.$vnode.data : {}
       if (vnodeData.routerView) {
@@ -69,7 +69,10 @@ export default {
         return h()
       }
     }
-    const matched = route.matched[depth]
+    const matchedRoutesExcludingMFEs = route.matched.filter(route => {
+      return route.mfes && route.mfes.default === undefined
+    })
+    const matched = matchedRoutesExcludingMFEs[depth]
     const component = matched && matched.components[name]
 
     // render empty node if no matched route or no config component

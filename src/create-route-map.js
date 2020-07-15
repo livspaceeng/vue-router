@@ -22,21 +22,21 @@ export function createRouteMap (
   const nameMap: Dictionary<RouteRecord> = oldNameMap || Object.create(null)
 
   routes.forEach(route => {
-    let mfeParentRoute
+    // let mfeParentRoute
     // find if any children of mfe are non root and requiring routing then they must
     // be added with the parent link
-    if (route.mfe && route.children) {
-      const isSomeNonRootMfeChild = route.children.find(childRoute => {
-        return childRoute.path !== ''
-      })
-      // @rohit instead of just picking keys from pathMap we need to do regex matching
-      // for parametric routes
-      if (isSomeNonRootMfeChild) {
-        mfeParentRoute = Object.values(pathMap) // pathMap[route.path]
-          .find(record => record.regex.test(route.path))
-      }
-    }
-    addRouteRecord(pathList, pathMap, nameMap, route, mfeParentRoute)
+    // if (route.mfe && route.children) {
+    //   // const isSomeNonRootMfeChild = route.children.find(childRoute => {
+    //   //   return childRoute.path !== ''
+    //   // })
+    //   // @rohit instead of just picking keys from pathMap we need to do regex matching
+    //   // for parametric routes
+    //   // if (isSomeNonRootMfeChild) {
+    //   mfeParentRoute = Object.values(pathMap) // pathMap[route.path]
+    //     .find(record => (record.regex.test(route.path) && !record.path.includes(':')))
+    //   // }
+    // }
+    addRouteRecord(pathList, pathMap, nameMap, route)
   })
 
   // ensure wildcard routes are always at the end
@@ -145,6 +145,27 @@ function addRouteRecord (
     })
   }
 
+  // for the case when mfe's children are added in async manner, the matched path
+  // construction starts from mfe root path already preset thus that needs to be removed
+  // before its children are added.
+  if (record.mfes && record.mfes.default !== undefined) {
+    const mfeIndexInPathlist = pathList.findIndex(path => {
+      return path === record.path
+    })
+    const mfeTrailingPathIndexInPathlist = pathList.findIndex(path => {
+      return path === record.path + '/'
+    })
+    if (
+      mfeIndexInPathlist > -1 &&
+      mfeTrailingPathIndexInPathlist > -1 &&
+      mfeTrailingPathIndexInPathlist > mfeIndexInPathlist
+    ) {
+      record.parent = undefined
+      record.mferedirect = pathMap[pathList[mfeIndexInPathlist]].mferedirect
+      delete pathMap[pathList[mfeIndexInPathlist]]
+      pathList.splice(mfeIndexInPathlist, 1)
+    }
+  }
   if (!pathMap[record.path]) {
     pathList.push(record.path)
     pathMap[record.path] = record
