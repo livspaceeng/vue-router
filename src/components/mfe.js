@@ -156,7 +156,7 @@ export default {
             props: {
               mfe,
               depth: depth + 1,
-              path_to_redirect_after_boot: route.redirectedFrom,
+              path_to_redirect_after_boot: mfeRoutesMatched[depth].mferedirect,
               mfemountpath: mfeRoutesMatched[depth]
                 ? mfeRoutesMatched[depth]['path']
                 : ''
