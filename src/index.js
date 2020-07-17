@@ -175,7 +175,7 @@ export default class VueRouter {
     //   parent = parent.$parent
     // }
     // }
-    this.push(location, onComplete, onAbort)
+    return this.push(location, onComplete, onAbort)
   }
 
   replace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
