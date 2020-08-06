@@ -37,7 +37,7 @@ export default {
     const current = this.$route
     let parent = this.$parent
     const mferoutermountlink = Object.assign({}, this.to)
-    if (this.to.mfepath) {
+    if (this.to.mfepath && !this.to.name) {
       while (parent) {
         if (parent._isMfe) {
           // let mferoutermountlink = parent._mfeMountPath.path

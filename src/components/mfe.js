@@ -1,5 +1,12 @@
 import { warn } from '../util/warn'
 
+function checkProperties (obj) {
+  for (var key in obj) {
+    if (obj[key] === null || obj[key] === '' || obj[key] === undefined) return false
+  }
+  return true
+}
+
 const MFEBooter = {
   name: 'mfe-booter',
   props: {
@@ -124,7 +131,7 @@ export default {
     }
     // get matched routes which have mfes  - checking for default here as named outlets needs more work
     const mfeRoutesMatched = route.matched.filter(matchroute => {
-      return matchroute.mfes.default !== undefined
+      return checkProperties(matchroute.mfes)
     })
     const matched = mfeRoutesMatched[depth]
     const name = props.name

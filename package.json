@@ -1,6 +1,6 @@
 {
   "name": "@canvas/vue-router",
-  "version": "3.1.18",
+  "version": "3.1.18-dev-2",
   "description": "Official router for Vue.js 2",
   "author": "Evan You",
   "license": "MIT",

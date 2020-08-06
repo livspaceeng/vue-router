@@ -40,6 +40,11 @@ export declare class VueRouter {
     onComplete?: Function,
     onAbort?: ErrorHandler
   ): void
+  mfereplace(
+    location: RawLocation,
+    onComplete?: Function,
+    onAbort?: ErrorHandler
+  ): void
   go(n: number): void
   back(): void
   forward(): void

@@ -160,21 +160,12 @@ export default class VueRouter {
   }
 
   mfepush (location: RawLocation, onComplete?: Function, onAbort?: Function) {
-    // $flow-disable-line
-    // if (location.mfepath) {
     const parent = this.apps.find(app => {
       return app._isMfe
     })
     if (parent) {
       location.path = parent._mfeMountPath + location.path
     }
-    // while (parent) {
-    //   if (parent._isMfe) {
-    //     location.path = parent._mfeMountPath + location.path
-    //   }
-    //   parent = parent.$parent
-    // }
-    // }
     return this.push(location, onComplete, onAbort)
   }
 
@@ -187,6 +178,16 @@ export default class VueRouter {
     } else {
       this.history.replace(location, onComplete, onAbort)
     }
+  }
+
+  mfereplace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
+    const parent = this.apps.find(app => {
+      return app._isMfe
+    })
+    if (parent) {
+      location.path = parent._mfeMountPath + location.path
+    }
+    return this.replace(location, onComplete, onAbort)
   }
 
   go (n: number) {
