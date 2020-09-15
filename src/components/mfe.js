@@ -12,11 +12,14 @@ const MFEBooter = {
   props: {
     mfe: {},
     depth: {},
+    customKey: {
+      type: Number
+    },
     path_to_redirect_after_boot: null,
     mfemountpath: ''
   },
   render (h) {
-    console.log('Booting mfe: ', this.mfe)
+    console.log('Booting mfe: ', this.mfe, this.customKey)
 
     this.$nextTick(() => {
       this.mountmfe()
@@ -107,6 +110,9 @@ export default {
     },
     shadowStyles: {
       type: String
+    },
+    customKey: {
+      type: Number
     }
   },
   render (h, { props, children, parent, data }) {
@@ -163,6 +169,7 @@ export default {
             props: {
               mfe,
               depth: depth + 1,
+              customKey: props.customKey,
               path_to_redirect_after_boot: mfeRoutesMatched[depth].mferedirect,
               mfemountpath: mfeRoutesMatched[depth]
                 ? mfeRoutesMatched[depth]['path']

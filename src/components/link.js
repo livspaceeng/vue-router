@@ -36,7 +36,7 @@ export default {
     const router = this.$router
     const current = this.$route
     let parent = this.$parent
-    const mferoutermountlink = Object.assign({}, this.to)
+    const mferoutermountlink = JSON.parse(JSON.stringify(this.to))
     if (this.to.mfepath && !this.to.name) {
       while (parent) {
         if (parent._isMfe) {
