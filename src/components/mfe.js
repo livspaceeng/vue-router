@@ -16,7 +16,11 @@ const MFEBooter = {
       type: Number
     },
     path_to_redirect_after_boot: null,
-    mfemountpath: ''
+    mfemountpath: '',
+    useShadowDom: {
+      type: Boolean,
+      default: true
+    }
   },
   render (h) {
     console.log('Booting mfe: ', this.mfe, this.customKey)
@@ -56,20 +60,18 @@ const MFEBooter = {
   methods: {
     mountmfe () {
       if (this.mfe && !this.mfe.mfevm) {
-        let shadowroot = this.$el.shadowRoot
-        if (!shadowroot) {
-          shadowroot = this.$el.attachShadow({ mode: 'open' })
+        let shadowroot
+        if (this.useShadowDom) {
+          shadowroot = this.$el.shadowRoot
+          if (!shadowroot) {
+            shadowroot = this.$el.attachShadow({ mode: 'open' })
+          }
+          shadowroot.innerHTML = ''
+        } else {
+          shadowroot = this.$el
         }
-        shadowroot.innerHTML = ''
         const shodowhost = document.createElement('div')
         shadowroot.appendChild(shodowhost)
-        // let mfemountpath = ""
-        // if (
-        //   this.mfemountpath &&
-        //   this.$route.path.match(this.mfemountpath) !== null
-        // ) {
-        //   mfemountpath = this.$route.path
-        // }
         this.mfe
           .boot(shodowhost, {
             mountpoint: shadowroot,
@@ -106,7 +108,7 @@ export default {
     },
     useShadowDom: {
       type: Boolean,
-      default: false
+      default: true
     },
     shadowStyles: {
       type: String
@@ -159,6 +161,10 @@ export default {
           }
         ])
       }
+      let mfemountpath = mfeRoutesMatched[depth] ? mfeRoutesMatched[depth]['path'] : ''
+      if (mfemountpath[mfemountpath.length - 1] === '/') {
+        mfemountpath = mfemountpath.slice(0, -1)
+      }
       vnode = h(
         'div',
         {
@@ -170,10 +176,9 @@ export default {
               mfe,
               depth: depth + 1,
               customKey: props.customKey,
+              useShadowDom: props.useShadowDom,
               path_to_redirect_after_boot: mfeRoutesMatched[depth].mferedirect,
-              mfemountpath: mfeRoutesMatched[depth]
-                ? mfeRoutesMatched[depth]['path']
-                : ''
+              mfemountpath: mfemountpath
             }
           })
         ]
