@@ -1,11 +1,5 @@
 import { warn } from '../util/warn'
-
-function checkProperties (obj) {
-  for (var key in obj) {
-    if (obj[key] === null || obj[key] === '' || obj[key] === undefined) return false
-  }
-  return true
-}
+import { checkMFEProperties } from '../util/helper'
 
 const MFEBooter = {
   name: 'mfe-booter',
@@ -22,28 +16,46 @@ const MFEBooter = {
       default: true
     }
   },
+  data () {
+    return {
+      bootedMFE: null
+    }
+  },
   render (h) {
-    console.log('Booting mfe: ', this.mfe, this.customKey)
-
+    const mfeInfo =
+      this.mfe.name +
+      '\n' +
+      this.depth +
+      '\n' +
+      this.mfemountpath +
+      '\n' +
+      this.path_to_redirect_after_boot +
+      '\n' +
+      this.customKey
+    warn(
+      false,
+      'Booting mfe: ' + this.mfe && this.mfe.name + '\n\n MFE : ' + mfeInfo
+    )
     this.$nextTick(() => {
       this.mountmfe()
     })
-
-    // if (this.mfe && this.mfe.mfevm) {
-    //   const el = this.mfe.mfevm.$el
-    //   const temphost = document.querySelector('#temphost')
-    //   temphost.innerHTML = ''
-    //   temphost.appendChild(el)
-    // }
 
     return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name }})
   },
   watch: {
     mfe: {
       handler: function (newvalue, oldvalue) {
-        warn(false, `Running watcher for mfe ${newvalue.name}`)
-        if (oldvalue && oldvalue.name && oldvalue.name !== newvalue.name) {
+        if (newvalue) {
+          warn(false, `Running watcher for mfe ${newvalue.name}`)
+        }
+        if (
+          oldvalue &&
+          oldvalue.name &&
+          newvalue &&
+          oldvalue.name !== newvalue.name
+        ) {
           try {
+            warn(false, `Destroying mfe ${oldvalue.name}`)
             this.destroymfe(oldvalue)
           } catch (err) {
             warn(false, 'Tried to destroy vm but got error')
@@ -53,9 +65,17 @@ const MFEBooter = {
       immediate: true
     }
   },
-  destroyed () {
-    warn(false, `Destroying mfe ${this.mfe.name}`)
-    this.destroymfe(this.mfe)
+  beforeDestroy () {
+    try {
+      warn(false, `Destroying mfe ${this.bootedMFE.name}`)
+      this.destroymfe(this.bootedMFE)
+    } catch (err) {
+      warn(
+        false,
+        'Tried to destroy vm but got error - Error:',
+        err || undefined
+      )
+    }
   },
   methods: {
     mountmfe () {
@@ -66,10 +86,11 @@ const MFEBooter = {
           if (!shadowroot) {
             shadowroot = this.$el.attachShadow({ mode: 'open' })
           }
-          shadowroot.innerHTML = ''
         } else {
           shadowroot = this.$el
         }
+        shadowroot.innerHTML = ''
+        shadowroot.innerText = ''
         const shodowhost = document.createElement('div')
         shadowroot.appendChild(shodowhost)
         this.mfe
@@ -82,15 +103,18 @@ const MFEBooter = {
               : this.$route.path
           })
           .then(() => {
+            this.bootedMFE = this.mfe
             if (this.path_to_redirect_after_boot) {
-              this.$router.push({ path: this.path_to_redirect_after_boot })
+              this.$router.push({
+                path: this.path_to_redirect_after_boot
+              })
             }
             this.$emit('bootfinished')
           })
       }
     },
     destroymfe (mfe) {
-      if (mfe) {
+      if (mfe && mfe.mfevm) {
         mfe.mfevm.$destroy()
         mfe.mfevm = null
       }
@@ -133,13 +157,14 @@ export default {
     let parentIterator = parent
     while (parentIterator) {
       if (parentIterator._isMfe) {
-        depth += parentIterator.mfedepth
+        // depth += parentIterator.mfedepth
+        depth++
       }
       parentIterator = parentIterator.$parent
     }
     // get matched routes which have mfes  - checking for default here as named outlets needs more work
     const mfeRoutesMatched = route.matched.filter(matchroute => {
-      return checkProperties(matchroute.mfes)
+      return checkMFEProperties(matchroute.mfes)
     })
     const matched = mfeRoutesMatched[depth]
     const name = props.name
@@ -161,7 +186,9 @@ export default {
           }
         ])
       }
-      let mfemountpath = mfeRoutesMatched[depth] ? mfeRoutesMatched[depth]['path'] : ''
+      let mfemountpath = mfeRoutesMatched[depth]
+        ? mfeRoutesMatched[depth]['path']
+        : ''
       if (mfemountpath[mfemountpath.length - 1] === '/') {
         mfemountpath = mfemountpath.slice(0, -1)
       }

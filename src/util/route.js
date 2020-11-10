@@ -39,7 +39,8 @@ export function createRoute (
     query,
     params: location.params || {},
     fullPath: getFullPath(location, stringifyQuery),
-    matched: record ? formatMatch(record) : []
+    matched: record ? formatMatch(record) : [],
+    mferedirect: (record && record.mferedirect) || undefined
   }
   // }
   if (redirectedFrom) {

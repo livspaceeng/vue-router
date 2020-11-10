@@ -3,6 +3,7 @@
 import Regexp from 'path-to-regexp'
 import { cleanPath } from './util/path'
 import { assert, warn } from './util/warn'
+import { checkMFEProperties } from './util/helper'
 
 export function createRouteMap (
   routes: Array<RouteConfig>,
@@ -22,21 +23,24 @@ export function createRouteMap (
   const nameMap: Dictionary<RouteRecord> = oldNameMap || Object.create(null)
 
   routes.forEach(route => {
-    // let mfeParentRoute
-    // find if any children of mfe are non root and requiring routing then they must
-    // be added with the parent link
-    // if (route.mfe && route.children) {
-    //   // const isSomeNonRootMfeChild = route.children.find(childRoute => {
-    //   //   return childRoute.path !== ''
-    //   // })
-    //   // @rohit instead of just picking keys from pathMap we need to do regex matching
-    //   // for parametric routes
-    //   // if (isSomeNonRootMfeChild) {
-    //   mfeParentRoute = Object.values(pathMap) // pathMap[route.path]
-    //     .find(record => (record.regex.test(route.path) && !record.path.includes(':')))
-    //   // }
-    // }
-    addRouteRecord(pathList, pathMap, nameMap, route)
+    let mfeParentRoute
+    /**
+     * find if any children of mfe are non root and requiring routing then they must
+     * be added with the parent link
+     */
+    if (route.mfe && route.children) {
+      /**
+       * It the path to be matched is an mfe and chlidren are present for that
+       * then, calcualte the parent for this route from the routeMap by doing regex
+       * match and pass that as argument to the addRouteRecord
+       */
+      mfeParentRoute = Object.values(pathMap).find(record =>
+        record.regex.test(route.path)
+      )
+      addRouteRecord(pathList, pathMap, nameMap, route, mfeParentRoute.parent)
+    } else {
+      addRouteRecord(pathList, pathMap, nameMap, route)
+    }
   })
 
   // ensure wildcard routes are always at the end
@@ -109,6 +113,7 @@ function addRouteRecord (
     redirect: route.redirect,
     beforeEnter: route.beforeEnter,
     meta: route.meta || {},
+    mferedirect: (route && route.mferedirect) || undefined,
     props:
       route.props == null
         ? {}
@@ -148,7 +153,7 @@ function addRouteRecord (
   // for the case when mfe's children are added in async manner, the matched path
   // construction starts from mfe root path already preset thus that needs to be removed
   // before its children are added.
-  if (record.mfes && record.mfes.default !== undefined) {
+  if (record.mfes && checkMFEProperties(record.mfes)) {
     const mfeIndexInPathlist = pathList.findIndex(path => {
       return path === record.path
     })
@@ -160,12 +165,13 @@ function addRouteRecord (
       mfeTrailingPathIndexInPathlist > -1 &&
       mfeTrailingPathIndexInPathlist > mfeIndexInPathlist
     ) {
-      record.parent = undefined
+      // record.parent = undefined
       record.mferedirect = pathMap[pathList[mfeIndexInPathlist]].mferedirect
       delete pathMap[pathList[mfeIndexInPathlist]]
       pathList.splice(mfeIndexInPathlist, 1)
     }
   }
+
   if (!pathMap[record.path]) {
     pathList.push(record.path)
     pathMap[record.path] = record

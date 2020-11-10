@@ -160,7 +160,8 @@ export default class VueRouter {
   }
 
   mfepush (location: RawLocation, onComplete?: Function, onAbort?: Function) {
-    const parent = this.apps.find(app => {
+    const searchApps = this.apps.reverse()
+    const parent = searchApps.find(app => {
       return app._isMfe
     })
     if (parent) {
@@ -181,7 +182,8 @@ export default class VueRouter {
   }
 
   mfereplace (location: RawLocation, onComplete?: Function, onAbort?: Function) {
-    const parent = this.apps.find(app => {
+    const searchApps = this.apps.reverse()
+    const parent = searchApps.find(app => {
       return app._isMfe
     })
     if (parent) {

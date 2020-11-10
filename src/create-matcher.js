@@ -7,6 +7,7 @@ import { createRoute } from './util/route'
 import { fillParams } from './util/params'
 import { createRouteMap } from './create-route-map'
 import { normalizeLocation } from './util/location'
+import { checkMFEProperties } from './util/helper'
 
 export type Matcher = {
   match: (
@@ -71,6 +72,27 @@ export function createMatcher (
         const record = pathMap[path]
         if (matchRoute(record.regex, location.path, location.params)) {
           routeExists = true
+          /**
+           * When a nested mfe child is opened in url, we save that in mferedirect path
+           * so when any other path is opened, check for that redirect path in the parent mfes
+           * route config and add that for this path as well.
+           */
+          // let mferedirectPath = record.mferedirect
+          // let parentItr = record
+          // while (parentItr) {
+          //   if (
+          //     parentItr.mferedirect &&
+          //     parentItr.mfes &&
+          //     checkMFEProperties(parentItr.mfes)
+          //   ) {
+          //     mferedirectPath = parentItr.mferedirect
+          //   }
+          //   parentItr = parentItr.parent;
+          // }
+          // record.mferedirect = mferedirectPath;
+          // if (record.mferedirect) {
+          //   record.mferedirect = undefined;
+          // }
           return _createRoute(record, location, redirectedFrom)
         }
       }
@@ -86,7 +108,7 @@ export function createMatcher (
           if (
             matchedRecord &&
             matchedRecord.mfes &&
-            matchedRecord.mfes.default !== undefined &&
+            checkMFEProperties(matchedRecord.mfes) &&
             matchRoute(matchedRecord.regex, possibleMfePath, location.params)
           ) {
             const redirectRecord: RouteRecord = Object.assign(
