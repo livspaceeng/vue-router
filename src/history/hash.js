@@ -127,7 +127,6 @@ export function getHash (): string {
   } else {
     href = decodeURI(href.slice(0, searchIndex)) + href.slice(searchIndex)
   }
-
   return href
 }
 

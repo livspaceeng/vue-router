@@ -174,13 +174,14 @@ export default {
     if (matched && matched.mfes) {
       // const name = Object.keys(matched.mfes)[0]
       const mfe = matched && matched.mfes[name]
-
+      let mfeRoutesExist = true
       if (name && mfe && !mfe.mfevm) {
+        mfeRoutesExist = false
         const subroutes = mfe.routes
         parent.$router.addRoutes([
           {
-            name: route.name,
-            path: route.path,
+            name: matched.name,
+            path: matched.path,
             mfe: mfe,
             children: subroutes
           }
@@ -204,7 +205,8 @@ export default {
               depth: depth + 1,
               customKey: props.customKey,
               useShadowDom: props.useShadowDom,
-              path_to_redirect_after_boot: mfeRoutesMatched[depth].mferedirect,
+              path_to_redirect_after_boot:
+                mfeRoutesExist ? undefined : mfeRoutesMatched[depth].mferedirect,
               mfemountpath: mfemountpath
             }
           })

@@ -94,8 +94,12 @@ function addRouteRecord (
   }
 
   const pathToRegexpOptions: PathToRegexpOptions =
-    route.pathToRegexpOptions || {}
-  const normalizedPath = normalizePath(path, parent, pathToRegexpOptions.strict)
+      route.pathToRegexpOptions || {}
+  const normalizedPath = normalizePath(
+    path,
+    parent,
+    pathToRegexpOptions.strict
+  )
 
   if (typeof route.caseSensitive === 'boolean') {
     pathToRegexpOptions.sensitive = route.caseSensitive
@@ -115,11 +119,11 @@ function addRouteRecord (
     meta: route.meta || {},
     mferedirect: (route && route.mferedirect) || undefined,
     props:
-      route.props == null
-        ? {}
-        : route.components
-          ? route.props
-          : { default: route.props }
+        route.props == null
+          ? {}
+          : route.components
+            ? route.props
+            : { default: route.props }
   }
 
   if (route.children) {
@@ -129,16 +133,16 @@ function addRouteRecord (
     if (process.env.NODE_ENV !== 'production') {
       if (
         route.name &&
-        !route.redirect &&
-        route.children.some(child => /^\/?$/.test(child.path))
+          !route.redirect &&
+          route.children.some(child => /^\/?$/.test(child.path))
       ) {
         warn(
           false,
           `Named Route '${route.name}' has a default child route. ` +
-            `When navigating to this named route (:to="{name: '${route.name}'"), ` +
-            `the default child route will not be rendered. Remove the name from ` +
-            `this route and use the name of the default child route for named ` +
-            `links instead.`
+              `When navigating to this named route (:to="{name: '${route.name}'"), ` +
+              `the default child route will not be rendered. Remove the name from ` +
+              `this route and use the name of the default child route for named ` +
+              `links instead.`
         )
       }
     }
@@ -150,9 +154,12 @@ function addRouteRecord (
     })
   }
 
-  // for the case when mfe's children are added in async manner, the matched path
-  // construction starts from mfe root path already preset thus that needs to be removed
-  // before its children are added.
+  /**
+     * for the case when mfe's children are added in async manner, the matched path
+     * construction starts from mfe root path already preset thus that needs to be removed
+     * before its children are added.
+     */
+
   if (record.mfes && checkMFEProperties(record.mfes)) {
     const mfeIndexInPathlist = pathList.findIndex(path => {
       return path === record.path
@@ -162,8 +169,8 @@ function addRouteRecord (
     })
     if (
       mfeIndexInPathlist > -1 &&
-      mfeTrailingPathIndexInPathlist > -1 &&
-      mfeTrailingPathIndexInPathlist > mfeIndexInPathlist
+        mfeTrailingPathIndexInPathlist > -1 &&
+        mfeTrailingPathIndexInPathlist > mfeIndexInPathlist
     ) {
       // record.parent = undefined
       record.mferedirect = pathMap[pathList[mfeIndexInPathlist]].mferedirect
@@ -174,6 +181,21 @@ function addRouteRecord (
 
   if (!pathMap[record.path]) {
     pathList.push(record.path)
+    /**
+       * For the routes that aren't present and we are adding those,
+       * remove the actual route that is present in the pathlist and push that one to the last
+       * This is to be done becuase route matching will match the earlier one and not the one we are adding here.
+       */
+    // const extraRouteAlreadyInPathMap = Object.values(pathMap).find(path =>
+    //   path.regex.test(record.path)
+    // )
+    // if (extraRouteAlreadyInPathMap) {
+    //   const extraRouteAlreadyInPathMapIndex = pathList.findIndex(path => {
+    //     return path === extraRouteAlreadyInPathMap.path
+    //   })
+    //   pathList.splice(extraRouteAlreadyInPathMapIndex, 1)
+    //   pathList.push(extraRouteAlreadyInPathMap.path)
+    // }
     pathMap[record.path] = record
   }
 
@@ -212,7 +234,7 @@ function addRouteRecord (
       warn(
         false,
         `Duplicate named routes definition: ` +
-          `{ name: "${name}", path: "${record.path}" }`
+            `{ name: "${name}", path: "${record.path}" }`
       )
     }
   }

@@ -36,6 +36,10 @@ export default {
     const router = this.$router
     const current = this.$route
     let parent = this.$parent
+    /**
+     * This will be deprecated as no calculation will be done for path based on mfemountpath
+     * Remove the below code used for calcualtion once people migrate
+     */
     const mferoutermountlink = JSON.parse(JSON.stringify(this.to))
     if (this.to.mfepath && !this.to.name) {
       while (parent) {
@@ -57,7 +61,7 @@ export default {
     }
 
     const { location, route, href } = router.resolve(
-      mferoutermountlink,
+      this.to,
       current,
       this.append
     )
