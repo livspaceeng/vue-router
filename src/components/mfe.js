@@ -67,8 +67,11 @@ const MFEBooter = {
   },
   beforeDestroy () {
     try {
-      warn(false, `Destroying mfe ${this.bootedMFE.name}`)
-      this.destroymfe(this.bootedMFE)
+      warn(
+        false,
+        `Destroying mfe ${this.bootedMFE ? this.bootedMFE.name : this.mfe.name}`
+      )
+      this.destroymfe(this.bootedMFE ? this.bootedMFE : this.mfe)
     } catch (err) {
       warn(
         false,
@@ -172,12 +175,27 @@ export default {
     // let vnode = h('div', { attrs: { 'mfe-router-outlet': name }}, 'No mfe was matched!')
 
     if (matched && matched.mfes) {
-      // const name = Object.keys(matched.mfes)[0]
+      let mfemountpath = mfeRoutesMatched[depth]
+        ? mfeRoutesMatched[depth]['path']
+        : ''
+      if (mfemountpath[mfemountpath.length - 1] === '/') {
+        mfemountpath = mfemountpath.slice(0, -1)
+      }
+
       const mfe = matched && matched.mfes[name]
       let mfeRoutesExist = true
       if (name && mfe && !mfe.mfevm) {
         mfeRoutesExist = false
         const subroutes = mfe.routes
+        subroutes.forEach((route) => {
+          if (route.redirect) {
+            if (typeof route.redirect === 'string') {
+              route.redirect = mfemountpath + route.redirect
+            } else if (typeof route.redirect === 'object' && route.redirect.path) {
+              route.redirect.path = mfemountpath + route.redirect.path
+            }
+          }
+        })
         parent.$router.addRoutes([
           {
             name: matched.name,
@@ -186,12 +204,6 @@ export default {
             children: subroutes
           }
         ])
-      }
-      let mfemountpath = mfeRoutesMatched[depth]
-        ? mfeRoutesMatched[depth]['path']
-        : ''
-      if (mfemountpath[mfemountpath.length - 1] === '/') {
-        mfemountpath = mfemountpath.slice(0, -1)
       }
       vnode = h(
         'div',
