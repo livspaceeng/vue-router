@@ -200,7 +200,7 @@ export default {
           {
             name: matched.name,
             path: matched.path,
-            mfe: mfe,
+            mfes: matched.mfes,
             children: subroutes
           }
         ])
