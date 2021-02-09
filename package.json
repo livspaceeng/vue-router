@@ -1,6 +1,6 @@
 {
   "name": "@canvas/vue-router",
-  "version": "3.1.19-fix5",
+  "version": "3.1.20-UC-95",
   "description": "Official router for Vue.js 2",
   "author": "Evan You",
   "license": "MIT",

@@ -18,7 +18,8 @@ const MFEBooter = {
   },
   data () {
     return {
-      bootedMFE: null
+      bootedMFE: null,
+      mfeChildRedirectPath: null
     }
   },
   render (h) {
@@ -54,12 +55,7 @@ const MFEBooter = {
           newvalue &&
           oldvalue.name !== newvalue.name
         ) {
-          try {
-            warn(false, `Destroying mfe ${oldvalue.name}`)
-            this.destroymfe(oldvalue)
-          } catch (err) {
-            warn(false, 'Tried to destroy vm but got error')
-          }
+          this.destroymfe(oldvalue)
         }
       },
       immediate: true
@@ -83,6 +79,7 @@ const MFEBooter = {
   methods: {
     mountmfe () {
       if (this.mfe && !this.mfe.mfevm) {
+        this.mfeChildRedirectPath = this.path_to_redirect_after_boot
         let shadowroot
         if (this.useShadowDom) {
           shadowroot = this.$el.shadowRoot
@@ -107,18 +104,25 @@ const MFEBooter = {
           })
           .then(() => {
             this.bootedMFE = this.mfe
-            if (this.path_to_redirect_after_boot) {
+            if (this.mfeChildRedirectPath) {
               this.$router.push({
-                path: this.path_to_redirect_after_boot
+                path: this.mfeChildRedirectPath
               })
             }
-            this.$emit('bootfinished')
+            this.$emit('bootfinish')
+            this.$parent.$emit('bootfinish')
+            this.$parent.$parent.$emit('bootfinish')
           })
       }
     },
     destroymfe (mfe) {
       if (mfe && mfe.mfevm) {
-        mfe.mfevm.$destroy()
+        try {
+          warn(false, `Destroying mfe ${mfe.name}`)
+          mfe.mfevm.$destroy()
+        } catch (err) {
+          warn(false, 'Tried to destroy vm but got error')
+        }
         mfe.mfevm = null
       }
     }
@@ -161,7 +165,8 @@ export default {
     while (parentIterator) {
       if (parentIterator._isMfe) {
         // depth += parentIterator.mfedepth
-        depth++
+        depth = parentIterator.mfedepth
+        break
       }
       parentIterator = parentIterator.$parent
     }
@@ -172,8 +177,6 @@ export default {
     const matched = mfeRoutesMatched[depth]
     const name = props.name
     let vnode = h()
-    // let vnode = h('div', { attrs: { 'mfe-router-outlet': name }}, 'No mfe was matched!')
-
     if (matched && matched.mfes) {
       let mfemountpath = mfeRoutesMatched[depth]
         ? mfeRoutesMatched[depth]['path']
@@ -205,6 +208,11 @@ export default {
           }
         ])
       }
+      const pathToRedirectAfterBoot = mfeRoutesExist ? undefined : mfeRoutesMatched[depth].mferedirect
+      /**
+       * Clearing the mferedirect here as for subsequent route match the mferedirection should not happen
+       */
+      mfeRoutesMatched[depth].mferedirect = undefined
       vnode = h(
         'div',
         {
@@ -217,8 +225,7 @@ export default {
               depth: depth + 1,
               customKey: props.customKey,
               useShadowDom: props.useShadowDom,
-              path_to_redirect_after_boot:
-                mfeRoutesExist ? undefined : mfeRoutesMatched[depth].mferedirect,
+              path_to_redirect_after_boot: pathToRedirectAfterBoot,
               mfemountpath: mfemountpath
             }
           })

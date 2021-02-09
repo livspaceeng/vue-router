@@ -32,13 +32,17 @@ export default {
         // 1 is added here because while adding child routes of mfe in create-route-map.js:36 a link to parent is
         // provided to construct the proper matched array. This here creates one base entry with undefined path
         // will have to debug even more to fix this..
-        depth += parentItr.mfedepth
+        depth = parentItr.mfedepth + (parentItr.mfedepth - 1)
+        break
       }
       parentItr = parentItr.$parent
     }
-    if (depth > 1) {
-      depth++
-    }
+    // if (depth > 1) {
+    //   depth++
+    // }
+    // if (depth > 1) {
+    //   depth += depth - 1
+    // }
     while (parent && parent._routerRoot !== parent) {
       const vnodeData = parent.$vnode ? parent.$vnode.data : {}
       if (vnodeData.routerView) {

@@ -28,7 +28,7 @@ export function createRouteMap (
      * find if any children of mfe are non root and requiring routing then they must
      * be added with the parent link
      */
-    if (route.mfe && route.children) {
+    if ((route.mfe || route.mfes) && route.children) {
       /**
        * It the path to be matched is an mfe and chlidren are present for that
        * then, calcualte the parent for this route from the routeMap by doing regex
