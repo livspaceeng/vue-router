@@ -1,5 +1,4 @@
 import { warn } from '../util/warn'
-import { checkMFEProperties } from '../util/helper'
 
 const MFEBooter = {
   name: 'mfe-booter',
@@ -97,6 +96,7 @@ const MFEBooter = {
           .boot(shodowhost, {
             mountpoint: shadowroot,
             router: this.$router,
+            store: this.$store,
             depth: this.depth,
             mfemountpath: this.mfemountpath
               ? this.mfemountpath
@@ -110,8 +110,6 @@ const MFEBooter = {
               })
             }
             this.$emit('bootfinish')
-            this.$parent.$emit('bootfinish')
-            this.$parent.$parent.$emit('bootfinish')
           })
       }
     },
@@ -170,17 +168,27 @@ export default {
       }
       parentIterator = parentIterator.$parent
     }
+    while (parent && parent._routerRoot !== parent) {
+      const vnodeData = parent.$vnode ? parent.$vnode.data : {}
+      if (vnodeData.routerView) {
+        depth++
+      }
+      parent = parent.$parent
+    }
     // get matched routes which have mfes  - checking for default here as named outlets needs more work
-    const mfeRoutesMatched = route.matched.filter(matchroute => {
-      return checkMFEProperties(matchroute.mfes)
-    })
-    const matched = mfeRoutesMatched[depth]
+    // const mfeRoutesMatched = route.matched.filter(matchroute => {
+    //   return checkMFEProperties(matchroute.mfes)
+    // })
+    // const matchedUniqueRoutes = route.matched.filter(
+    //   (set => record => !set.has(record.path) && set.add(record.path))(
+    //     new Set()
+    //   )
+    // )
+    const matched = route.matched[depth]
     const name = props.name
     let vnode = h()
     if (matched && matched.mfes) {
-      let mfemountpath = mfeRoutesMatched[depth]
-        ? mfeRoutesMatched[depth]['path']
-        : ''
+      let mfemountpath = matched ? matched['path'] : ''
       if (mfemountpath[mfemountpath.length - 1] === '/') {
         mfemountpath = mfemountpath.slice(0, -1)
       }
@@ -208,11 +216,13 @@ export default {
           }
         ])
       }
-      const pathToRedirectAfterBoot = mfeRoutesExist ? undefined : mfeRoutesMatched[depth].mferedirect
+      const pathToRedirectAfterBoot = mfeRoutesExist
+        ? undefined
+        : route.mferedirect
       /**
        * Clearing the mferedirect here as for subsequent route match the mferedirection should not happen
        */
-      mfeRoutesMatched[depth].mferedirect = undefined
+      matched.mferedirect = undefined
       vnode = h(
         'div',
         {

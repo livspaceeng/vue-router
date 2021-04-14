@@ -69,33 +69,33 @@ export function createMatcher (
       let routeExists: boolean = false
       for (let i = 0; i < pathList.length; i++) {
         const path = pathList[i]
-        let record = pathMap[path]
+        const record = pathMap[path]
         if (matchRoute(record.regex, location.path, location.params)) {
           routeExists = true
-          let mfeRouteExists = false
-          let mferecord = null
+          // let mfeRouteExists = false
+          // let mferecord = null
           /**
            * For the routes that aren't present and we are adding those,
            * remove the actual route that is present in the pathlist and push that one to the last
            * This is to be done becuase route matching will match the earlier one and not the one we are adding here.
            */
-          if (
-            record.path.indexOf(':') !== -1 &&
-            checkMFEProperties(record.mfes)
-          ) {
-            mfeRouteExists = false
-            for (let j = i + 1; j < pathList.length; j++) {
-              const mfepath = pathList[j]
-              mferecord = pathMap[mfepath]
-              if (matchRoute(mferecord.regex, location.path, location.params)) {
-                mfeRouteExists = true
-                break
-              }
-            }
-          }
-          if (mfeRouteExists) {
-            record = mferecord
-          }
+          // if (
+          //   record.path.indexOf(':') !== -1 &&
+          //   checkMFEProperties(record.mfes)
+          // ) {
+          //   mfeRouteExists = false
+          //   for (let j = i + 1; j < pathList.length; j++) {
+          //     const mfepath = pathList[j]
+          //     mferecord = pathMap[mfepath]
+          //     if (matchRoute(mferecord.regex, location.path, location.params)) {
+          //       mfeRouteExists = true
+          //       break
+          //     }
+          //   }
+          // }
+          // if (mfeRouteExists) {
+          //   record = mferecord
+          // }
           /**
            * When a nested mfe child is opened in url, we save that in mferedirect path
            * so when any other path is opened, check for that redirect path in the parent mfes

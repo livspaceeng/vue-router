@@ -1,6 +1,6 @@
 /*!
-  * vue-router v3.1.5
-  * (c) 2020 Evan You
+  * vue-router v3.1.21-dev-UC-129-2
+  * (c) 2021 Evan You
   * @license MIT
   */
 /*  */
@@ -65,6 +65,24 @@ var View = {
     // has been toggled inactive but kept-alive.
     var depth = 0;
     var inactive = false;
+    var parentItr = parent;
+    while (parentItr) {
+      if (parentItr._isMfe) {
+        // get depth only from the actual mfe and not its children
+        // 1 is added here because while adding child routes of mfe in create-route-map.js:36 a link to parent is
+        // provided to construct the proper matched array. This here creates one base entry with undefined path
+        // will have to debug even more to fix this..
+        depth = parentItr.mfedepth;
+        break
+      }
+      parentItr = parentItr.$parent;
+    }
+    // if (depth > 1) {
+    //   depth++
+    // }
+    // if (depth > 1) {
+    //   depth += depth - 1
+    // }
     while (parent && parent._routerRoot !== parent) {
       var vnodeData = parent.$vnode ? parent.$vnode.data : {};
       if (vnodeData.routerView) {
@@ -85,7 +103,12 @@ var View = {
         // #2301
         // pass props
         if (cachedData.configProps) {
-          fillPropsinData(cachedComponent, data, cachedData.route, cachedData.configProps);
+          fillPropsinData(
+            cachedComponent,
+            data,
+            cachedData.route,
+            cachedData.configProps
+          );
         }
         return h(cachedComponent, data, children)
       } else {
@@ -93,7 +116,25 @@ var View = {
         return h()
       }
     }
-
+    // const matchedRoutesExcludingMFEs = route.matched.filter(route => {
+    //   return (
+    //     route.mfes &&
+    //     !checkMFEProperties(route.mfes)
+    //   )
+    // })
+    /**
+     * This is being done to filter out the unique matched routes
+     * Non unique matched routes are because when addRouteRecord is called
+     * in create-route-match.js:40 and then parent's path is normalized in the
+     * function then parent chain c->b->a gets wrong and extra entry is being
+     * created when formatMatch is called for the route.matched to be populated.
+     * Get this redone when spending mroe time.
+     */
+    // const matchedUniqueRoutes = route.matched.filter(
+    //   (set => record => !set.has(record.path) && set.add(record.path))(
+    //     new Set()
+    //   )
+    // )
     var matched = route.matched[depth];
     var component = matched && matched.components[name];
 
@@ -111,10 +152,7 @@ var View = {
     data.registerRouteInstance = function (vm, val) {
       // val could be undefined for unregistration
       var current = matched.instances[name];
-      if (
-        (val && current !== vm) ||
-        (!val && current === vm)
-      ) {
+      if ((val && current !== vm) || (!val && current === vm)) {
         matched.instances[name] = val;
       }
     }
@@ -128,7 +166,8 @@ var View = {
     // register instance in init hook
     // in case kept-alive component be actived when routes changed
     data.hook.init = function (vnode) {
-      if (vnode.data.keepAlive &&
+      if (
+        vnode.data.keepAlive &&
         vnode.componentInstance &&
         vnode.componentInstance !== matched.instances[name]
       ) {
@@ -152,12 +191,12 @@ var View = {
 
 function fillPropsinData (component, data, route, configProps) {
   // resolve props
-  var propsToPass = data.props = resolveProps(route, configProps);
+  var propsToPass = (data.props = resolveProps(route, configProps));
   if (propsToPass) {
     // clone to prevent mutation
     propsToPass = data.props = extend({}, propsToPass);
     // pass non-declared props as attrs
-    var attrs = data.attrs = data.attrs || {};
+    var attrs = (data.attrs = data.attrs || {});
     for (var key in propsToPass) {
       if (!component.props || !(key in component.props)) {
         attrs[key] = propsToPass[key];
@@ -182,7 +221,7 @@ function resolveProps (route, config) {
         warn(
           false,
           "props in \"" + (route.path) + "\" is a " + (typeof config) + ", " +
-          "expecting an object, function or boolean."
+            "expecting an object, function or boolean."
         );
       }
   }
@@ -300,8 +339,21 @@ function createRoute (
   try {
     query = clone(query);
   } catch (e) {}
-
-  var route = {
+  var route = {};
+  // if (record && record.mferedirect) {
+  //   route = {
+  //     name: location.name || (record && record.name),
+  //     meta: {},
+  //     path: location.path || '/',
+  //     hash: location.hash || '',
+  //     query,
+  //     params: location.params || {},
+  //     fullPath: getFullPath(location, stringifyQuery),
+  //     matched: record ? formatMatch(record) : [],
+  //     mferedirect: (record && record.mferedirect) || ''
+  //   }
+  // } else {
+  route = {
     name: location.name || (record && record.name),
     meta: (record && record.meta) || {},
     path: location.path || '/',
@@ -309,8 +361,10 @@ function createRoute (
     query: query,
     params: location.params || {},
     fullPath: getFullPath(location, stringifyQuery),
-    matched: record ? formatMatch(record) : []
+    matched: record ? formatMatch(record) : [],
+    mferedirect: (record && record.mferedirect) || undefined
   };
+  // }
   if (redirectedFrom) {
     route.redirectedFrom = getFullPath(redirectedFrom, stringifyQuery);
   }
@@ -345,10 +399,7 @@ function formatMatch (record) {
   return res
 }
 
-function getFullPath (
-  ref,
-  _stringifyQuery
-) {
+function getFullPath (ref, _stringifyQuery) {
   var path = ref.path;
   var query = ref.query; if ( query === void 0 ) query = {};
   var hash = ref.hash; if ( hash === void 0 ) hash = '';
@@ -364,7 +415,8 @@ function isSameRoute (a, b) {
     return false
   } else if (a.path && b.path) {
     return (
-      a.path.replace(trailingSlashRE, '') === b.path.replace(trailingSlashRE, '') &&
+      a.path.replace(trailingSlashRE, '') ===
+        b.path.replace(trailingSlashRE, '') &&
       a.hash === b.hash &&
       isObjectEqual(a.query, b.query)
     )
@@ -404,15 +456,18 @@ function isObjectEqual (a, b) {
 
 function isIncludedRoute (current, target) {
   return (
-    current.path.replace(trailingSlashRE, '/').indexOf(
-      target.path.replace(trailingSlashRE, '/')
-    ) === 0 &&
+    current.path
+      .replace(trailingSlashRE, '/')
+      .indexOf(target.path.replace(trailingSlashRE, '/')) === 0 &&
     (!target.hash || current.hash === target.hash) &&
     queryIncludes(current.query, target.query)
   )
 }
 
-function queryIncludes (current, target) {
+function queryIncludes (
+  current,
+  target
+) {
   for (var key in target) {
     if (!(key in current)) {
       return false
@@ -1055,6 +1110,31 @@ var Link = {
 
     var router = this.$router;
     var current = this.$route;
+    var parent = this.$parent;
+    /**
+     * This will be deprecated as no calculation will be done for path based on mfemountpath
+     * Remove the below code used for calcualtion once people migrate
+     */
+    var mferoutermountlink = JSON.parse(JSON.stringify(this.to));
+    if (this.to.mfepath && !this.to.name) {
+      while (parent) {
+        if (parent._isMfe) {
+          // let mferoutermountlink = parent._mfeMountPath.path
+          // if (mferoutermountlink[mferoutermountlink.length - 1] === '/') {
+          //   mferoutermountlink = mferoutermountlink.substring(0, mferoutermountlink.length-1)
+          // }
+          mferoutermountlink.path = parent._mfeMountPath + this.to.path;
+          // if (current.path.match(parent._mfeMountPath.regex) !== null) {
+          //   this.to.path = current.path + this.to.path
+          // }
+          // if (mferoutermountlink.search(this.to.path) < 0) {
+          //   mferoutermountlink = mferoutermountlink.split('/').slice(0, mferoutermountlink.split('/').length-1).join('/')
+          // }
+        }
+        parent = parent.$parent;
+      }
+    }
+
     var ref = router.resolve(
       this.to,
       current,
@@ -1063,7 +1143,6 @@ var Link = {
     var location = ref.location;
     var route = ref.route;
     var href = ref.href;
-
     var classes = {};
     var globalActiveClass = router.options.linkActiveClass;
     var globalExactActiveClass = router.options.linkExactActiveClass;
@@ -1210,37 +1289,256 @@ function findAnchor (children) {
   }
 }
 
+var MFEBooter = {
+  name: 'mfe-booter',
+  props: {
+    mfe: {},
+    depth: {},
+    customKey: {
+      type: Number
+    },
+    path_to_redirect_after_boot: null,
+    mfemountpath: '',
+    useShadowDom: {
+      type: Boolean,
+      default: true
+    }
+  },
+  data: function data () {
+    return {
+      bootedMFE: null,
+      mfeChildRedirectPath: null
+    }
+  },
+  render: function render (h) {
+    var this$1 = this;
+
+    var mfeInfo =
+      this.mfe.name +
+      '\n' +
+      this.depth +
+      '\n' +
+      this.mfemountpath +
+      '\n' +
+      this.path_to_redirect_after_boot +
+      '\n' +
+      this.customKey;
+    warn(
+      false,
+      'Booting mfe: ' + this.mfe && this.mfe.name + '\n\n MFE : ' + mfeInfo
+    );
+    this.$nextTick(function () {
+      this$1.mountmfe();
+    });
+
+    return h('div', { attrs: { 'mfe-name': this.mfe && this.mfe.name }})
+  },
+  watch: {
+    mfe: {
+      handler: function (newvalue, oldvalue) {
+        if (newvalue) {
+          warn(false, ("Running watcher for mfe " + (newvalue.name)));
+        }
+        if (
+          oldvalue &&
+          oldvalue.name &&
+          newvalue &&
+          oldvalue.name !== newvalue.name
+        ) {
+          this.destroymfe(oldvalue);
+        }
+      },
+      immediate: true
+    }
+  },
+  beforeDestroy: function beforeDestroy () {
+    try {
+      warn(
+        false,
+        ("Destroying mfe " + (this.bootedMFE ? this.bootedMFE.name : this.mfe.name))
+      );
+      this.destroymfe(this.bootedMFE ? this.bootedMFE : this.mfe);
+    } catch (err) {
+      warn(
+        false,
+        'Tried to destroy vm but got error - Error:');
+    }
+  },
+  methods: {
+    mountmfe: function mountmfe () {
+      var this$1 = this;
+
+      if (this.mfe && !this.mfe.mfevm) {
+        this.mfeChildRedirectPath = this.path_to_redirect_after_boot;
+        var shadowroot;
+        if (this.useShadowDom) {
+          shadowroot = this.$el.shadowRoot;
+          if (!shadowroot) {
+            shadowroot = this.$el.attachShadow({ mode: 'open' });
+          }
+        } else {
+          shadowroot = this.$el;
+        }
+        shadowroot.innerHTML = '';
+        shadowroot.innerText = '';
+        var shodowhost = document.createElement('div');
+        shadowroot.appendChild(shodowhost);
+        this.mfe
+          .boot(shodowhost, {
+            mountpoint: shadowroot,
+            router: this.$router,
+            store: this.$store,
+            depth: this.depth,
+            mfemountpath: this.mfemountpath
+              ? this.mfemountpath
+              : this.$route.path
+          })
+          .then(function () {
+            this$1.bootedMFE = this$1.mfe;
+            if (this$1.mfeChildRedirectPath) {
+              this$1.$router.push({
+                path: this$1.mfeChildRedirectPath
+              });
+            }
+            this$1.$emit('bootfinish');
+          });
+      }
+    },
+    destroymfe: function destroymfe (mfe) {
+      if (mfe && mfe.mfevm) {
+        try {
+          warn(false, ("Destroying mfe " + (mfe.name)));
+          mfe.mfevm.$destroy();
+        } catch (err) {
+          warn(false, 'Tried to destroy vm but got error');
+        }
+        mfe.mfevm = null;
+      }
+    }
+  }
+};
+
 var Mfe = {
-  name: 'RouterMfe',
+  name: 'router-mfe',
+  functional: true,
   props: {
     name: {
       type: String,
       default: 'default'
+    },
+    useShadowDom: {
+      type: Boolean,
+      default: true
+    },
+    shadowStyles: {
+      type: String
+    },
+    customKey: {
+      type: Number
     }
   },
-  render: function render (h) {
+  render: function render (h, ref) {
+    var props = ref.props;
+    var children = ref.children;
+    var parent = ref.parent;
+    var data = ref.data;
+
     // used by devtools to display a router-view badge
     // data.routerView = true
     // const h = parent.$createElement
-    return h('div', { ref: 'host' })
-  },
+    data.routerView = true;
+    // parent.$vnode.data = data;
+    var route = parent.$route;
 
-  mounted: function mounted () {
-    var this$1 = this;
-
-    var route = this.$parent.$route;
-    debugger
     var depth = 0;
-    var matched = route.matched[depth];
-    if (matched && matched.mfes) {
-      var name = Object.keys(matched.mfes)[0];
-      var mfe = matched && matched.mfes[name];
-      // const subroutes = this.mfe.router;
-      // this.router.addRoutes(this.currentroute, subroutes);
-      mfe.boot(this.$refs.host).then(function () {
-        this$1.$emit('bootfinished');
-      });
+
+    // if (parent.mfedepth !== undefined) {
+    //   depth += parent.mfedepth
+    // }
+    var parentIterator = parent;
+    while (parentIterator) {
+      if (parentIterator._isMfe) {
+        // depth += parentIterator.mfedepth
+        depth = parentIterator.mfedepth;
+        break
+      }
+      parentIterator = parentIterator.$parent;
     }
+    while (parent && parent._routerRoot !== parent) {
+      var vnodeData = parent.$vnode ? parent.$vnode.data : {};
+      if (vnodeData.routerView) {
+        depth++;
+      }
+      parent = parent.$parent;
+    }
+    // get matched routes which have mfes  - checking for default here as named outlets needs more work
+    // const mfeRoutesMatched = route.matched.filter(matchroute => {
+    //   return checkMFEProperties(matchroute.mfes)
+    // })
+    // const matchedUniqueRoutes = route.matched.filter(
+    //   (set => record => !set.has(record.path) && set.add(record.path))(
+    //     new Set()
+    //   )
+    // )
+    var matched = route.matched[depth];
+    var name = props.name;
+    var vnode = h();
+    if (matched && matched.mfes) {
+      var mfemountpath = matched ? matched['path'] : '';
+      if (mfemountpath[mfemountpath.length - 1] === '/') {
+        mfemountpath = mfemountpath.slice(0, -1);
+      }
+
+      var mfe = matched && matched.mfes[name];
+      var mfeRoutesExist = true;
+      if (name && mfe && !mfe.mfevm) {
+        mfeRoutesExist = false;
+        var subroutes = mfe.routes;
+        subroutes.forEach(function (route) {
+          if (route.redirect) {
+            if (typeof route.redirect === 'string') {
+              route.redirect = mfemountpath + route.redirect;
+            } else if (typeof route.redirect === 'object' && route.redirect.path) {
+              route.redirect.path = mfemountpath + route.redirect.path;
+            }
+          }
+        });
+        parent.$router.addRoutes([
+          {
+            name: matched.name,
+            path: matched.path,
+            mfes: matched.mfes,
+            children: subroutes
+          }
+        ]);
+      }
+      var pathToRedirectAfterBoot = mfeRoutesExist
+        ? undefined
+        : route.mferedirect;
+      /**
+       * Clearing the mferedirect here as for subsequent route match the mferedirection should not happen
+       */
+      matched.mferedirect = undefined;
+      vnode = h(
+        'div',
+        {
+          attrs: { 'mfe-router-outlet': name }
+        },
+        [
+          h(MFEBooter, {
+            props: {
+              mfe: mfe,
+              depth: depth + 1,
+              customKey: props.customKey,
+              useShadowDom: props.useShadowDom,
+              path_to_redirect_after_boot: pathToRedirectAfterBoot,
+              mfemountpath: mfemountpath
+            }
+          })
+        ]
+      );
+    }
+    return vnode
   }
 };
 
@@ -1278,13 +1576,17 @@ function install (Vue) {
     }
   });
 
-  Object.defineProperty(Vue.prototype, '$router', {
-    get: function get () { return this._routerRoot._router }
-  });
+  try {
+    Object.defineProperty(Vue.prototype, '$router', {
+      get: function get () { return this._routerRoot._router }
+    });
 
-  Object.defineProperty(Vue.prototype, '$route', {
-    get: function get () { return this._routerRoot._route }
-  });
+    Object.defineProperty(Vue.prototype, '$route', {
+      get: function get () { return this._routerRoot._route }
+    });
+  } catch (e) {
+
+  }
 
   Vue.component('RouterView', View);
   Vue.component('RouterLink', Link);
@@ -1298,6 +1600,13 @@ function install (Vue) {
 /*  */
 
 var inBrowser = typeof window !== 'undefined';
+
+function checkMFEProperties (obj) {
+  for (var key in obj) {
+    if (obj[key] === null || obj[key] === '' || obj[key] === undefined) { return false }
+  }
+  return true
+}
 
 /*  */
 
@@ -1315,7 +1624,23 @@ function createRouteMap (
   var nameMap = oldNameMap || Object.create(null);
 
   routes.forEach(function (route) {
-    addRouteRecord(pathList, pathMap, nameMap, route);
+    var mfeParentRoute;
+    /**
+     * find if any children of mfe are non root and requiring routing then they must
+     * be added with the parent link
+     */
+    if ((route.mfe || route.mfes) && route.children) {
+      /**
+       * It the path to be matched is an mfe and chlidren are present for that
+       * then, calcualte the parent for this route from the routeMap by doing regex
+       * match and pass that as argument to the addRouteRecord
+       */
+      mfeParentRoute = Object.values(pathMap).find(function (record) { return record.regex.test(route.path); }
+      );
+      addRouteRecord(pathList, pathMap, nameMap, route, mfeParentRoute.parent);
+    } else {
+      addRouteRecord(pathList, pathMap, nameMap, route);
+    }
   });
 
   // ensure wildcard routes are always at the end
@@ -1330,12 +1655,15 @@ function createRouteMap (
   if (process.env.NODE_ENV === 'development') {
     // warn if routes do not include leading slashes
     var found = pathList
-    // check for missing leading slash
+      // check for missing leading slash
       .filter(function (path) { return path && path.charAt(0) !== '*' && path.charAt(0) !== '/'; });
 
     if (found.length > 0) {
       var pathNames = found.map(function (path) { return ("- " + path); }).join('\n');
-      warn(false, ("Non-nested routes must include a leading slash character. Fix the following routes: \n" + pathNames));
+      warn(
+        false,
+        ("Non-nested routes must include a leading slash character. Fix the following routes: \n" + pathNames)
+      );
     }
   }
 
@@ -1367,8 +1695,12 @@ function addRouteRecord (
   }
 
   var pathToRegexpOptions =
-    route.pathToRegexpOptions || {};
-  var normalizedPath = normalizePath(path, parent, pathToRegexpOptions.strict);
+      route.pathToRegexpOptions || {};
+  var normalizedPath = normalizePath(
+    path,
+    parent,
+    pathToRegexpOptions.strict
+  );
 
   if (typeof route.caseSensitive === 'boolean') {
     pathToRegexpOptions.sensitive = route.caseSensitive;
@@ -1386,12 +1718,13 @@ function addRouteRecord (
     redirect: route.redirect,
     beforeEnter: route.beforeEnter,
     meta: route.meta || {},
+    mferedirect: (route && route.mferedirect) || undefined,
     props:
-      route.props == null
-        ? {}
-        : route.components
-          ? route.props
-          : { default: route.props }
+        route.props == null
+          ? {}
+          : route.components
+            ? route.props
+            : { default: route.props }
   };
 
   if (route.children) {
@@ -1401,16 +1734,16 @@ function addRouteRecord (
     if (process.env.NODE_ENV !== 'production') {
       if (
         route.name &&
-        !route.redirect &&
-        route.children.some(function (child) { return /^\/?$/.test(child.path); })
+          !route.redirect &&
+          route.children.some(function (child) { return /^\/?$/.test(child.path); })
       ) {
         warn(
           false,
           "Named Route '" + (route.name) + "' has a default child route. " +
-            "When navigating to this named route (:to=\"{name: '" + (route.name) + "'\"), " +
-            "the default child route will not be rendered. Remove the name from " +
-            "this route and use the name of the default child route for named " +
-            "links instead."
+              "When navigating to this named route (:to=\"{name: '" + (route.name) + "'\"), " +
+              "the default child route will not be rendered. Remove the name from " +
+              "this route and use the name of the default child route for named " +
+              "links instead."
         );
       }
     }
@@ -1422,8 +1755,48 @@ function addRouteRecord (
     });
   }
 
+  /**
+     * for the case when mfe's children are added in async manner, the matched path
+     * construction starts from mfe root path already preset thus that needs to be removed
+     * before its children are added.
+     */
+
+  if (record.mfes && checkMFEProperties(record.mfes)) {
+    var mfeIndexInPathlist = pathList.findIndex(function (path) {
+      return path === record.path
+    });
+    var mfeTrailingPathIndexInPathlist = pathList.findIndex(function (path) {
+      return path === record.path + '/'
+    });
+    if (
+      mfeIndexInPathlist > -1 &&
+        mfeTrailingPathIndexInPathlist > -1 &&
+        mfeTrailingPathIndexInPathlist > mfeIndexInPathlist
+    ) {
+      // record.parent = undefined
+      record.mferedirect = pathMap[pathList[mfeIndexInPathlist]].mferedirect;
+      delete pathMap[pathList[mfeIndexInPathlist]];
+      pathList.splice(mfeIndexInPathlist, 1);
+    }
+  }
+
   if (!pathMap[record.path]) {
     pathList.push(record.path);
+    /**
+       * For the routes that aren't present and we are adding those,
+       * remove the actual route that is present in the pathlist and push that one to the last
+       * This is to be done becuase route matching will match the earlier one and not the one we are adding here.
+       */
+    // const extraRouteAlreadyInPathMap = Object.values(pathMap).find(path =>
+    //   path.regex.test(record.path)
+    // )
+    // if (extraRouteAlreadyInPathMap) {
+    //   const extraRouteAlreadyInPathMapIndex = pathList.findIndex(path => {
+    //     return path === extraRouteAlreadyInPathMap.path
+    //   })
+    //   pathList.splice(extraRouteAlreadyInPathMapIndex, 1)
+    //   pathList.push(extraRouteAlreadyInPathMap.path)
+    // }
     pathMap[record.path] = record;
   }
 
@@ -1462,7 +1835,7 @@ function addRouteRecord (
       warn(
         false,
         "Duplicate named routes definition: " +
-          "{ name: \"" + name + "\", path: \"" + (record.path) + "\" }"
+            "{ name: \"" + name + "\", path: \"" + (record.path) + "\" }"
       );
     }
   }
@@ -1543,16 +1916,112 @@ function createMatcher (
           }
         }
       }
-
-      location.path = fillParams(record.path, location.params, ("named route \"" + name + "\""));
+      location.path = fillParams(
+        record.path,
+        location.params,
+        ("named route \"" + name + "\"")
+      );
+      // location.path +="/"
       return _createRoute(record, location, redirectedFrom)
     } else if (location.path) {
       location.params = {};
+      var routeExists = false;
       for (var i = 0; i < pathList.length; i++) {
         var path = pathList[i];
         var record$1 = pathMap[path];
         if (matchRoute(record$1.regex, location.path, location.params)) {
+          routeExists = true;
+          // let mfeRouteExists = false
+          // let mferecord = null
+          /**
+           * For the routes that aren't present and we are adding those,
+           * remove the actual route that is present in the pathlist and push that one to the last
+           * This is to be done becuase route matching will match the earlier one and not the one we are adding here.
+           */
+          // if (
+          //   record.path.indexOf(':') !== -1 &&
+          //   checkMFEProperties(record.mfes)
+          // ) {
+          //   mfeRouteExists = false
+          //   for (let j = i + 1; j < pathList.length; j++) {
+          //     const mfepath = pathList[j]
+          //     mferecord = pathMap[mfepath]
+          //     if (matchRoute(mferecord.regex, location.path, location.params)) {
+          //       mfeRouteExists = true
+          //       break
+          //     }
+          //   }
+          // }
+          // if (mfeRouteExists) {
+          //   record = mferecord
+          // }
+          /**
+           * When a nested mfe child is opened in url, we save that in mferedirect path
+           * so when any other path is opened, check for that redirect path in the parent mfes
+           * route config and add that for this path as well.
+           */
+          // let mferedirectPath = record.mferedirect
+          // let parentItr = record
+          // while (parentItr) {
+          //   if (
+          //     parentItr.mferedirect &&
+          //     parentItr.mfes &&
+          //     checkMFEProperties(parentItr.mfes)
+          //   ) {
+          //     mferedirectPath = parentItr.mferedirect
+          //   }
+          //   parentItr = parentItr.parent;
+          // }
+          // record.mferedirect = mferedirectPath;
+          // if (record.mferedirect) {
+          //   record.mferedirect = undefined;
+          // }
           return _createRoute(record$1, location, redirectedFrom)
+        }
+      }
+      if (!routeExists) {
+        var pathSplit = location.path.split('/');
+        var routePathsLength = pathSplit.length;
+        var loop = function ( i ) {
+          pathSplit.pop();
+          var possibleMfePath = pathSplit.join('/');
+          var matchedRecord = Object.values(pathMap).find(function (record) { return record.regex.test(possibleMfePath); }
+          );
+          if (
+            matchedRecord &&
+            matchedRecord.mfes &&
+            checkMFEProperties(matchedRecord.mfes) &&
+            matchRoute(matchedRecord.regex, possibleMfePath, location.params)
+          ) {
+            var redirectRecord = Object.assign(
+              {},
+              pathMap[matchedRecord.path]
+            );
+            // redirectRecord.mferedirect = location.path
+            redirectRecord.redirect = possibleMfePath;
+            var queryString = (void 0);
+            if (location.query) {
+              queryString = Object.keys(location.query)
+                .map(function (key) { return key + '=' + location.query[key]; })
+                .join('&');
+            }
+            /**
+             * This is to ensure that mferedirect path is set only once
+             * As for subsequent routing the paths will already have been added
+             * and should directly route to the child path
+             */
+            if (!pathMap[redirectRecord.path]['mferedirect']) {
+              pathMap[redirectRecord.path]['mferedirect'] =
+                location.path + (queryString ? ("?" + queryString) : '');
+            }
+            return { v: _createRoute(redirectRecord, location, redirectedFrom) }
+          }
+        };
+
+        for (var i$1 = 0; i$1 < routePathsLength; i$1++) {
+          var returned = loop( i$1 );
+
+          if ( returned ) return returned.v;
         }
       }
     }
@@ -1560,14 +2029,12 @@ function createMatcher (
     return _createRoute(null, location)
   }
 
-  function redirect (
-    record,
-    location
-  ) {
+  function redirect (record, location) {
     var originalRedirect = record.redirect;
-    var redirect = typeof originalRedirect === 'function'
-      ? originalRedirect(createRoute(record, location, null, router))
-      : originalRedirect;
+    var redirect =
+      typeof originalRedirect === 'function'
+        ? originalRedirect(createRoute(record, location, null, router))
+        : originalRedirect;
 
     if (typeof redirect === 'string') {
       redirect = { path: redirect };
@@ -1575,9 +2042,7 @@ function createMatcher (
 
     if (!redirect || typeof redirect !== 'object') {
       if (process.env.NODE_ENV !== 'production') {
-        warn(
-          false, ("invalid redirect option: " + (JSON.stringify(redirect)))
-        );
+        warn(false, ("invalid redirect option: " + (JSON.stringify(redirect))));
       }
       return _createRoute(null, location)
     }
@@ -1596,27 +2061,42 @@ function createMatcher (
       // resolved named direct
       var targetRecord = nameMap[name];
       if (process.env.NODE_ENV !== 'production') {
-        assert(targetRecord, ("redirect failed: named route \"" + name + "\" not found."));
+        assert(
+          targetRecord,
+          ("redirect failed: named route \"" + name + "\" not found.")
+        );
       }
-      return match({
-        _normalized: true,
-        name: name,
-        query: query,
-        hash: hash,
-        params: params
-      }, undefined, location)
+      return match(
+        {
+          _normalized: true,
+          name: name,
+          query: query,
+          hash: hash,
+          params: params
+        },
+        undefined,
+        location
+      )
     } else if (path) {
       // 1. resolve relative redirect
       var rawPath = resolveRecordPath(path, record);
       // 2. resolve params
-      var resolvedPath = fillParams(rawPath, params, ("redirect route with path \"" + rawPath + "\""));
+      var resolvedPath = fillParams(
+        rawPath,
+        params,
+        ("redirect route with path \"" + rawPath + "\"")
+      );
       // 3. rematch with existing query and hash
-      return match({
-        _normalized: true,
-        path: resolvedPath,
-        query: query,
-        hash: hash
-      }, undefined, location)
+      return match(
+        {
+          _normalized: true,
+          path: resolvedPath,
+          query: query,
+          hash: hash
+        },
+        undefined,
+        location
+      )
     } else {
       if (process.env.NODE_ENV !== 'production') {
         warn(false, ("invalid redirect option: " + (JSON.stringify(redirect))));
@@ -1630,7 +2110,11 @@ function createMatcher (
     location,
     matchAs
   ) {
-    var aliasedPath = fillParams(matchAs, location.params, ("aliased route with path \"" + matchAs + "\""));
+    var aliasedPath = fillParams(
+      matchAs,
+      location.params,
+      ("aliased route with path \"" + matchAs + "\"")
+    );
     var aliasedMatch = match({
       _normalized: true,
       path: aliasedPath
@@ -1664,11 +2148,7 @@ function createMatcher (
   }
 }
 
-function matchRoute (
-  regex,
-  path,
-  params
-) {
+function matchRoute (regex, path, params) {
   var m = path.match(regex);
 
   if (!m) {
@@ -1989,6 +2469,41 @@ function resolveAsyncComponents (matched) {
       }
     });
 
+    flatMapMfes(matched, function (def, _, match, key) {
+      if (typeof def === 'function') {
+        hasAsync = true;
+        pending++;
+
+        var resolve = function (resolvedDef) {
+          if (isESModule(resolvedDef)) {
+            resolvedDef = resolvedDef.default;
+          }
+          match.mfes[key] = resolvedDef;
+          pending--;
+          if (pending <= 0) {
+            next();
+          }
+        };
+
+        var reject = function (reason) {
+          var msg = "Failed to resolve async component " + key + ": " + reason;
+          process.env.NODE_ENV !== 'production' && warn(false, msg);
+          if (!error) {
+            error = isError(reason)
+              ? reason
+              : new Error(msg);
+            next(error);
+          }
+        };
+
+        try {
+          def().then(resolve, reject);
+        } catch (e) {
+          reject(e);
+        }
+      }
+    });
+
     if (!hasAsync) { next(); }
   }
 }
@@ -2000,6 +2515,19 @@ function flatMapComponents (
   return flatten(matched.map(function (m) {
     return Object.keys(m.components).map(function (key) { return fn(
       m.components[key],
+      m.instances[key],
+      m, key
+    ); })
+  }))
+}
+
+function flatMapMfes (
+  matched,
+  fn
+) {
+  return flatten(matched.map(function (m) {
+    return Object.keys(m.mfes).map(function (key) { return fn(
+      m.mfes[key],
       m.instances[key],
       m, key
     ); })
@@ -2610,7 +3138,6 @@ function getHash () {
   } else {
     href = decodeURI(href.slice(0, searchIndex)) + href.slice(searchIndex);
   }
-
   return href
 }
 
@@ -2727,7 +3254,8 @@ var VueRouter = function VueRouter (options) {
   this.matcher = createMatcher(options.routes || [], this);
 
   var mode = options.mode || 'hash';
-  this.fallback = mode === 'history' && !supportsPushState && options.fallback !== false;
+  this.fallback =
+    mode === 'history' && !supportsPushState && options.fallback !== false;
   if (this.fallback) {
     mode = 'hash';
   }
@@ -2755,11 +3283,7 @@ var VueRouter = function VueRouter (options) {
 
 var prototypeAccessors = { currentRoute: { configurable: true } };
 
-VueRouter.prototype.match = function match (
-  raw,
-  current,
-  redirectedFrom
-) {
+VueRouter.prototype.match = function match (raw, current, redirectedFrom) {
   return this.matcher.match(raw, current, redirectedFrom)
 };
 
@@ -2770,11 +3294,12 @@ prototypeAccessors.currentRoute.get = function () {
 VueRouter.prototype.init = function init (app /* Vue component instance */) {
     var this$1 = this;
 
-  process.env.NODE_ENV !== 'production' && assert(
-    install.installed,
-    "not installed. Make sure to call `Vue.use(VueRouter)` " +
-    "before creating root instance."
-  );
+  process.env.NODE_ENV !== 'production' &&
+    assert(
+      install.installed,
+      "not installed. Make sure to call `Vue.use(VueRouter)` " +
+        "before creating root instance."
+    );
 
   this.apps.push(app);
 
@@ -2852,6 +3377,17 @@ VueRouter.prototype.push = function push (location, onComplete, onAbort) {
   }
 };
 
+VueRouter.prototype.mfepush = function mfepush (location, onComplete, onAbort) {
+  var searchApps = this.apps.reverse();
+  var parent = searchApps.find(function (app) {
+    return app._isMfe
+  });
+  if (parent) {
+    location.path = parent._mfeMountPath + location.path;
+  }
+  return this.push(location, onComplete, onAbort)
+};
+
 VueRouter.prototype.replace = function replace (location, onComplete, onAbort) {
     var this$1 = this;
 
@@ -2863,6 +3399,17 @@ VueRouter.prototype.replace = function replace (location, onComplete, onAbort) {
   } else {
     this.history.replace(location, onComplete, onAbort);
   }
+};
+
+VueRouter.prototype.mfereplace = function mfereplace (location, onComplete, onAbort) {
+  var searchApps = this.apps.reverse();
+  var parent = searchApps.find(function (app) {
+    return app._isMfe
+  });
+  if (parent) {
+    location.path = parent._mfeMountPath + location.path;
+  }
+  return this.replace(location, onComplete, onAbort)
 };
 
 VueRouter.prototype.go = function go (n) {
@@ -2886,11 +3433,14 @@ VueRouter.prototype.getMatchedComponents = function getMatchedComponents (to) {
   if (!route) {
     return []
   }
-  return [].concat.apply([], route.matched.map(function (m) {
-    return Object.keys(m.components).map(function (key) {
-      return m.components[key]
+  return [].concat.apply(
+    [],
+    route.matched.map(function (m) {
+      return Object.keys(m.components).map(function (key) {
+        return m.components[key]
+      })
     })
-  }))
+  )
 };
 
 VueRouter.prototype.resolve = function resolve (
@@ -2899,12 +3449,7 @@ VueRouter.prototype.resolve = function resolve (
   append
 ) {
   current = current || this.history.current;
-  var location = normalizeLocation(
-    to,
-    current,
-    append,
-    this
-  );
+  var location = normalizeLocation(to, current, append, this);
   var route = this.match(location, current);
   var fullPath = route.redirectedFrom || route.fullPath;
   var base = this.history.base;
@@ -2942,7 +3487,7 @@ function createHref (base, fullPath, mode) {
 }
 
 VueRouter.install = install;
-VueRouter.version = '3.1.5';
+VueRouter.version = '3.1.21-dev-UC-129-2';
 
 if (inBrowser && window.Vue) {
   window.Vue.use(VueRouter);

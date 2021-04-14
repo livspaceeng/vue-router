@@ -32,7 +32,7 @@ export default {
         // 1 is added here because while adding child routes of mfe in create-route-map.js:36 a link to parent is
         // provided to construct the proper matched array. This here creates one base entry with undefined path
         // will have to debug even more to fix this..
-        depth = parentItr.mfedepth + (parentItr.mfedepth - 1)
+        depth = parentItr.mfedepth
         break
       }
       parentItr = parentItr.$parent
@@ -82,6 +82,19 @@ export default {
     //     !checkMFEProperties(route.mfes)
     //   )
     // })
+    /**
+     * This is being done to filter out the unique matched routes
+     * Non unique matched routes are because when addRouteRecord is called
+     * in create-route-match.js:40 and then parent's path is normalized in the
+     * function then parent chain c->b->a gets wrong and extra entry is being
+     * created when formatMatch is called for the route.matched to be populated.
+     * Get this redone when spending mroe time.
+     */
+    // const matchedUniqueRoutes = route.matched.filter(
+    //   (set => record => !set.has(record.path) && set.add(record.path))(
+    //     new Set()
+    //   )
+    // )
     const matched = route.matched[depth]
     const component = matched && matched.components[name]
 
